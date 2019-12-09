@@ -6,6 +6,49 @@ from math import log
 import pandas as pd
 from sklearn import metrics as skmetrics
 
+import torch as th
+import torch.nn.functional as F
+
+import itertools
+
+# Loss Functions
+
+
+class perm_inv_loss:
+    def __init__(self, labels):
+        self.labels = labels
+        self.label_perms = None
+        self.num_classes = len(labels.unique())
+
+    def compute_loss(self, logits, mask):
+        if self.label_perms is None:
+            self.label_perms = list(
+                itertools.permutations(np.unique(self.labels)))
+
+        loss = th.tensor(np.infty, requires_grad=True)
+        for p in self.label_perms:
+            loss = th.min(loss, F.nll_loss(
+                logits[mask][:, p], self.labels[mask]))
+        return loss
+
+    def approximate_loss(self, logits, mask, nclasses=3):
+        # randomly assign labels to new clusters (trying to roughly achieve equal distribution)
+        assignments = np.random.choice([i % nclasses for i in range(
+            self.num_classes)], size=self.num_classes, replace=False)
+        new_labels = th.LongTensor(assignments[self.labels])
+        one_hot_assignments = th.ByteTensor(
+            np.eye(np.max(assignments) + 1)[assignments])
+        tensors = [th.sum(logits[:, one_hot_assignments[:, i]], dim=1)
+                   for i in range(nclasses)]
+        new_logits = th.stack(tensors, 1)
+        new_label_perms = list(itertools.permutations(np.unique(new_labels)))
+        loss = th.tensor(np.infty, requires_grad=True)
+        for p in new_label_perms:
+            loss = th.min(loss, F.nll_loss(
+                new_logits[mask][:, p], new_labels[mask]))
+        return loss
+
+
 # Scoring Functions
 
 
