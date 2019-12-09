@@ -17,13 +17,13 @@ import itertools
 class perm_inv_loss:
     def __init__(self, labels):
         self.labels = labels
-        self.label_perms = None
         self.num_classes = len(labels.unique())
+        self.label_perms = {i: None for i in range(2, self.num_classes+1)}
 
     def compute_loss(self, logits, mask):
-        if self.label_perms is None:
-            self.label_perms = list(
-                itertools.permutations(np.unique(self.labels)))
+        if self.label_perms[self.num_classes] is None:
+            self.label_perms[self.num_classes] = list(
+                itertools.permutations(range(self.num_classes)))
 
         loss = th.tensor(np.infty, requires_grad=True)
         for p in self.label_perms:
@@ -32,6 +32,10 @@ class perm_inv_loss:
         return loss
 
     def approximate_loss(self, logits, mask, nclasses=3):
+        if self.label_perms[nclasses] is None:
+            self.label_perms[nclasses] = list(
+                itertools.permutations(range(nclasses)))
+
         # randomly assign labels to new clusters (trying to roughly achieve equal distribution)
         assignments = np.random.choice([i % nclasses for i in range(
             self.num_classes)], size=self.num_classes, replace=False)
