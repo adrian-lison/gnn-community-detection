@@ -6,18 +6,21 @@ import networkx as nx
 
 class GNN_Animation:
     @staticmethod
-    def _compute_positions(logit_list):
-        pos_epochs = dict()
-        pos_epochs[0] = TSNE(n_components=2, n_iter=250, early_exaggeration=30).fit_transform(
-            logit_list[0].numpy())
-        for x in range(1, len(logit_list)):
-            #print(f"Compute scaling of epoch {x}")
-            pos_epochs[x] = TSNE(n_components=2, init=pos_epochs[x-1],
-                                 n_iter=250, early_exaggeration=30).fit_transform(logit_list[x].numpy())
+    def _compute_positions(logit_list, method="tsne"):
+        if method == "tsne":
+            pos_epochs = dict()
+            pos_epochs[0] = TSNE(n_components=2, n_iter=250, early_exaggeration=30).fit_transform(
+                logit_list[0].numpy())
+            for x in range(1, len(logit_list)):
+                #print(f"Compute scaling of epoch {x}")
+                pos_epochs[x] = TSNE(n_components=2, init=pos_epochs[x-1],
+                                     n_iter=250, early_exaggeration=30).fit_transform(logit_list[x].numpy())
+        if method == "pca":
+
         return pos_epochs
 
     @staticmethod
-    def _draw(i, pos_epochs, logit_list, graph, ax):
+    def draw_epoch(i, pos_epochs, logit_list, graph, ax):
         # cls1color = '#00FFFF'
         # cls2color = '#FF00FF'
         pos2d = {k: pos for k, pos in enumerate(pos_epochs[i])}
@@ -35,7 +38,7 @@ class GNN_Animation:
         fig = plt.figure(dpi=150, figsize=(7, 7))
         fig.clf()
         ax = fig.subplots()
-        ani = animation.FuncAnimation(fig, GNN_Animation._draw,
+        ani = animation.FuncAnimation(fig, GNN_Animation.draw_epoch,
                                       frames=len(logit_list),
                                       fargs=(
                                           pos_epochs, logit_list, dglgraph.to_networkx().to_undirected(), ax),
