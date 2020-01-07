@@ -40,7 +40,7 @@ class perm_inv_loss:
         assignments = np.random.choice([i % nclasses for i in range(
             self.num_classes)], size=self.num_classes, replace=False)
         new_labels = th.LongTensor(assignments[self.labels])
-        one_hot_assignments = th.ByteTensor(
+        one_hot_assignments = th.BoolTensor(
             np.eye(np.max(assignments) + 1)[assignments])
         tensors = [th.sum(logits[:, one_hot_assignments[:, i]], dim=1)
                    for i in range(nclasses)]
