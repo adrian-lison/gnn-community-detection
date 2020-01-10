@@ -43,6 +43,9 @@ conf = {
     ],
     "permutations": [1, 2, 3, 4],
     "repetitions": 2,
+    "learning_rates": [1e-2],
+    "weight_decays": [0, 1e-2],
+    "nets": [{"type": GCN_Net, "early_stopping": {"min": 300, "wait": 100}}],
 }
 
 # ----------------------------------------------------------------------------
@@ -51,15 +54,31 @@ conf = {
 
 data = citegrh.load_cora()
 labels = th.LongTensor(data.labels)
-g = data.graph
 
-# add self loop to graph
-g.remove_edges_from(nx.selfloop_edges(g))
-g = DGLGraph(g)
-g.add_edges(g.nodes(), g.nodes())
+# graph
+g = DGLGraph(data.graph)
 
-features_abstract = th.FloatTensor(data.features)
+# line graph
+lg = g.line_graph(backtracking=False)
+
+# graph with self-lopps
+g_selfl = data.graph
+g_selfl.remove_edges_from(nx.selfloop_edges(g_selfl))
+g_selfl = DGLGraph(g_selfl)
+g_selfl.add_edges(g_selfl.nodes(), g_selfl.nodes())
+
+# features based on the keywords of the papers
+features_keywords = th.FloatTensor(data.features)
+features_keywords_lg = th.FloatTensor(
+    np.vstack([features_keywords[e[0], :] for e in data.graph.edges])
+)  # for the nodes in the line graph, we take the features of the source paper as feature
+
+# features based on the node_id of the papers
 features_nodeid = th.eye(g.number_of_nodes())
+
+# features based on the node degree
+features_degree_g = g.in_degrees().float().unsqueeze(1)
+features_degree_lg = lg.in_degrees().float().unsqueeze(1)
 
 print(f"Loaded Cora dataset.")
 
@@ -133,4 +152,15 @@ def init_loss_function(labels, func_type, nclasses=None):
 # ----------------------------------------------------------------------------
 
 
+# ----------------------------------------------------------------------------
+# Define Run
+# ----------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------
+# Training
+# ----------------------------------------------------------------------------
+
+
+loss_func = init_loss_function
 
