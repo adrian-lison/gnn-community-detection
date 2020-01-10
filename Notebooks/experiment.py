@@ -38,6 +38,7 @@ conf = {
         {"train": 0.16, "val": 0.04, "test": 0.8},
     ],
     "permutations": [1, 2, 3, 4],
+    "repetitions": 2,
 }
 
 # ----------------------------------------------------------------------------
@@ -107,7 +108,24 @@ splits = [
 print(f"Created {len(splits)} different splits.")
 
 # ----------------------------------------------------------------------------
-# Networks and parameters
+# Loss Functions
+# ----------------------------------------------------------------------------
+
+
+def init_loss_function(labels, func_type, nclasses=None):
+    func = None
+    if func_type == "nll":
+        func = lambda logits, labels, mask: F.nll_loss(logits[mask], labels[mask])
+    elif func_type == "inv":
+        loss_function = pf.perm_inv_loss(labels)
+        func = lambda logits, labels, mask: loss_function.approximate_loss(
+            logits, mask, nclasses=nclasses
+        )
+    return func
+
+
+# ----------------------------------------------------------------------------
+# Networks and Parameters
 # ----------------------------------------------------------------------------
 
 # import GNN classes
