@@ -22,7 +22,7 @@ class LinearModule(nn.Module):
     def __init__(self, in_feats, out_feats, activation, batchnorm=False):
         super(LinearModule, self).__init__()
         self.batchnorm = batchnorm
-        self.bn = nn.BatchNorm1d(in_feats, affine=False)
+        self.bn = nn.BatchNorm1d(in_feats)
         self.linear = nn.Linear(in_feats, out_feats)
         self.activation = activation  # This is the activation function
 
