@@ -17,13 +17,16 @@ import numpy as np
 # GNN Definition
 # ----------------------------------------------------------------------------
 class GATLayer(nn.Module):
-    def __init__(self, g, in_dim, out_dim):
+    def __init__(self, g, in_feats, out_feats, batchnorm):
         super(GATLayer, self).__init__()
         self.g = g
         # equation (1)
-        self.fc = nn.Linear(in_dim, out_dim, bias=False)
+        self.fc = nn.Linear(in_feats, out_feats, bias=False)
         # equation (2)
-        self.attn_fc = nn.Linear(2 * out_dim, 1, bias=False)
+        self.attn_fc = nn.Linear(2 * out_feats, 1, bias=False)
+
+        self.batchnorm = batchnorm
+        self.bn = nn.BatchNorm1d(out_feats)
 
     def edge_attention(self, edges):
         # edge UDF for equation (2)
@@ -51,7 +54,11 @@ class GATLayer(nn.Module):
         self.g.apply_edges(self.edge_attention)
         # equation (3) & (4)
         self.g.update_all(self.message_func, self.reduce_func)
-        return self.g.ndata.pop("h")
+
+        res = self.g.ndata.pop("h")
+        if self.batchnorm:
+            res = self.bn(res)
+        return res
 
 
 class MultiHeadGATLayer(nn.Module):
