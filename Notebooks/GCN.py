@@ -38,19 +38,18 @@ class GCN(nn.Module):
         super(GCN, self).__init__()
         self.apply_mod = LinearModule(in_feats, out_feats, activation)
         self.batchnorm = batchnorm
-        self.bn = nn.BatchNorm1d(in_feats)
+        self.bn = nn.BatchNorm1d(out_feats)
 
     def forward(self, g, feature):
-        if self.batchnorm:
-            g.ndata["h"] = self.bn(feature)
-        else:
-            g.ndata["h"] = feature
-
         g.update_all(
             message_func=fn.copy_src(src="h", out="m"), reduce_func=fn.sum(msg="m", out="h")
         )
         g.apply_nodes(func=self.apply_mod)
-        return g.ndata.pop("h")
+
+        res = g.ndata.pop("h")
+        if self.batchnorm:
+            res = self.bn(res)
+        return res
 
 
 class GCN_Net(nn.Module):
