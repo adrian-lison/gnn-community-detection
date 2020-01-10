@@ -41,6 +41,7 @@ class GCN(nn.Module):
         self.bn = nn.BatchNorm1d(out_feats)
 
     def forward(self, g, feature):
+        g.ndata["h"] = feature
         g.update_all(
             message_func=fn.copy_src(src="h", out="m"), reduce_func=fn.sum(msg="m", out="h")
         )
@@ -55,16 +56,22 @@ class GCN(nn.Module):
 class GCN_Net(nn.Module):
     """Complete network"""
 
-    def __init__(self, g, in_feats, hidden_size, out_feats, dropout, batchnorm):
+    def __init__(self, g, in_feats, hidden_size, hidden_layers, out_feats, dropout, batchnorm):
         super(GCN_Net, self).__init__()
         self.g = g
-        self.gcn1 = GCN(in_feats, hidden_size, F.relu, batchnorm)
+        self.gcn_in = GCN(in_feats, hidden_size, F.relu, batchnorm)
+        self.gcn_hidden = [
+            GCN(hidden_size, hidden_size, F.relu, batchnorm) for i in range(hidden_layers)
+        ]
         self.dropout = nn.Dropout(dropout)
-        self.gcn2 = GCN(hidden_size, out_feats, F.relu, batchnorm)
+        self.gcn_out = GCN(hidden_size, out_feats, F.relu, batchnorm)
 
     def forward(self, features):
-        h = self.gcn1(self.g, features)
+        h = self.gcn_in(self.g, features)
+        for layer in self.gcn_hidden:
+            h = self.dropout(h)
+            h = layer(self.g, h)
         h = self.dropout(h)
-        h = self.gcn2(self.g, h)
+        h = self.gcn_out(self.g, h)
         h = F.log_softmax(h, 1)
         return h

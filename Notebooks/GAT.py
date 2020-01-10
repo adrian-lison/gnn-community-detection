@@ -62,11 +62,11 @@ class GATLayer(nn.Module):
 
 
 class MultiHeadGATLayer(nn.Module):
-    def __init__(self, g, in_dim, out_dim, num_heads, merge="cat"):
+    def __init__(self, g, in_feats, out_feats, num_heads, batchnorm, merge="cat"):
         super(MultiHeadGATLayer, self).__init__()
         self.heads = nn.ModuleList()
         for i in range(num_heads):
-            self.heads.append(GATLayer(g, in_dim, out_dim))
+            self.heads.append(GATLayer(g, in_feats, out_feats, batchnorm))
         self.merge = merge
 
     def forward(self, h):
@@ -80,17 +80,30 @@ class MultiHeadGATLayer(nn.Module):
 
 
 class GAT_Net(nn.Module):
-    def __init__(self, g, in_feats, hidden_size, out_feats, dropout, batchnorm, num_heads):
+    def __init__(
+        self, g, in_feats, hidden_size, hidden_layers, out_feats, dropout, batchnorm, num_heads
+    ):
         super(GAT_Net, self).__init__()
-        self.layer1 = MultiHeadGATLayer(g, in_feats, hidden_size, num_heads)
-        # Be aware that the input dimension is hidden_dim*num_heads since
+        # The input dimension is hidden_dim*num_heads since
         # multiple head outputs are concatenated together. Also, only
         # one attention head in the output layer.
-        self.layer2 = MultiHeadGATLayer(g, hidden_size * num_heads, out_feats, 1)
+        self.layer_in = MultiHeadGATLayer(g, in_feats, hidden_size, num_heads, batchnorm)
+        self.layer_hidden = [
+            MultiHeadGATLayer(g, hidden_size * num_heads, hidden_size, num_heads, batchnorm)
+            for i in range(hidden_layers)
+        ]
+        self.layer_out = MultiHeadGATLayer(g, hidden_size * num_heads, out_feats, 1, batchnorm)
+
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, features):
-        h = self.layer1(features)
+        h = self.layer_in(features)
         h = F.elu(h)
-        h = self.layer2(h)
+        for layer in self.layer_hidden:
+            h = self.dropout(h)
+            h = layer(h)
+            h = F.elu(h)
+        h = self.dropout(h)
+        h = self.layer_out(h)
         h = F.log_softmax(h, 1)
         return h

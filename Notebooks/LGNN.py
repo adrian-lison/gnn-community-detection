@@ -90,7 +90,9 @@ class LGNNLayer(nn.Module):
 
 
 class LGNN_Net(nn.Module):
-    def __init__(self, g, in_feats, hidden_size, out_feats, dropout, batchnorm, lg, radius):
+    def __init__(
+        self, g, in_feats, hidden_size, hidden_layers, out_feats, dropout, batchnorm, lg, radius
+    ):
         super(LGNN_Net, self).__init__()
         self.g = g
         self.lg = lg
@@ -107,14 +109,15 @@ class LGNN_Net(nn.Module):
         )
 
         # input
-        self.layer1 = LGNNLayer(in_feats, in_feats, hidden_size, radius, batchnorm)
+        self.layer_in = LGNNLayer(in_feats, in_feats, hidden_size, radius, batchnorm)
 
-        self.layer2 = LGNNLayer(hidden_size, hidden_size, hidden_size, radius, batchnorm)
-
-        self.layer3 = LGNNLayer(hidden_size, hidden_size, hidden_size, radius, batchnorm)
+        self.layer_hidden = [
+            LGNNLayer(hidden_size, hidden_size, hidden_size, radius, batchnorm)
+            for i in range(hidden_layers)
+        ]
 
         # predict classes
-        self.linear = nn.Linear(hidden_size, hidden_size, out_feats)
+        self.layer_out = nn.Linear(hidden_size, out_feats)
 
         self.dropout = nn.Dropout(dropout)
 
@@ -126,12 +129,13 @@ class LGNN_Net(nn.Module):
         # assume that features is a tuple of g_features and lg_features
         (h, lg_h) = features
 
-        h, lg_h = self.layer1(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
+        h, lg_h = self.layer_in(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
+
+        for layer in self.layer_hidden:
+            h = self.dropout(h)
+            h, lg_h = layer(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
 
         h = self.dropout(h)
-        h, lg_h = self.layer2(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
-
-        h = self.dropout(h)
-        h, lg_h = self.layer3(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
-
-        return self.linear(h)
+        h = self.layer_out(h)
+        h = F.log_softmax(h, 1)
+        return h
