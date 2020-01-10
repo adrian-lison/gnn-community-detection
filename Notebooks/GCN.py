@@ -56,15 +56,16 @@ class GCN(nn.Module):
 class GCN_Net(nn.Module):
     """Complete network"""
 
-    def __init__(self, in_feats, hidden_size, out_feats, dropout=0, batchnorm=False):
-        super(Net, self).__init__()
-
+    def __init__(self, g, in_feats, hidden_size, out_feats, dropout, batchnorm):
+        super(GCN_Net, self).__init__()
+        self.g = g
         self.gcn1 = GCN(in_feats, hidden_size, F.relu, batchnorm)
         self.dropout = nn.Dropout(dropout)
         self.gcn2 = GCN(hidden_size, out_feats, F.relu, batchnorm)
 
-    def forward(self, g, features):
-        x = self.gcn1(g, features)
-        x = self.dropout(x)
-        x = self.gcn2(g, x)
-        return x
+    def forward(self, features):
+        h = self.gcn1(self.g, features)
+        h = self.dropout(h)
+        h = self.gcn2(self.g, h)
+        h = F.log_softmax(h, 1)
+        return h
