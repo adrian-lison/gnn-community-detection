@@ -21,13 +21,16 @@ class LinearModule(nn.Module):
 
     def __init__(self, in_feats, out_feats, activation, batchnorm=False):
         super(LinearModule, self).__init__()
-
+        self.batchnorm = batchnorm
         self.bn = nn.BatchNorm1d(in_feats, affine=False)
         self.linear = nn.Linear(in_feats, out_feats)
         self.activation = activation  # This is the activation function
 
     def forward(self, node):
+        if self.batchnorm:
         h = self.bn(node.data["h"])
+        else:
+            h = node.data["h"]
         h = self.linear(h)
         h = self.activation(h)
         return {"h": h}
@@ -38,7 +41,6 @@ class GCN(nn.Module):
 
     def __init__(self, in_feats, out_feats, activation, batchnorm=False):
         super(GCN, self).__init__()
-
         self.apply_mod = LinearModule(in_feats, out_feats, activation, batchnorm)
 
     def forward(self, g, feature):
