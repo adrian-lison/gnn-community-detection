@@ -73,9 +73,7 @@ class MultiHeadGATLayer(nn.Module):
 
 
 class GAT_Net(nn.Module):
-    def __init__(
-        self, g, in_feats, hidden_size, out_feats, num_heads, dropout=0, batchnorm=False
-    ):
+    def __init__(self, g, in_feats, hidden_size, out_feats, dropout, batchnorm, num_heads):
         super(GAT_Net, self).__init__()
         self.layer1 = MultiHeadGATLayer(g, in_feats, hidden_size, num_heads)
         # Be aware that the input dimension is hidden_dim*num_heads since
