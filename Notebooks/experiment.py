@@ -27,6 +27,10 @@ import os
 # evaluation
 import performance as pf
 
+# GNN classes
+from GCN import GCN_Net
+from GAT import GAT_Net
+
 # ----------------------------------------------------------------------------
 # Configuration
 # ----------------------------------------------------------------------------
@@ -128,6 +132,5 @@ def init_loss_function(labels, func_type, nclasses=None):
 # Networks and Parameters
 # ----------------------------------------------------------------------------
 
-# import GNN classes
-from GCN import GCN_Net
+
 
