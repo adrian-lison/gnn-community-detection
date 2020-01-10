@@ -28,7 +28,7 @@ class LinearModule(nn.Module):
 
     def forward(self, node):
         if self.batchnorm:
-        h = self.bn(node.data["h"])
+            h = self.bn(node.data["h"])
         else:
             h = node.data["h"]
         h = self.linear(h)
@@ -46,8 +46,7 @@ class GCN(nn.Module):
     def forward(self, g, feature):
         g.ndata["h"] = feature
         g.update_all(
-            message_func=fn.copy_src(src="h", out="m"),
-            reduce_func=fn.sum(msg="m", out="h"),
+            message_func=fn.copy_src(src="h", out="m"), reduce_func=fn.sum(msg="m", out="h")
         )
         g.apply_nodes(func=self.apply_mod)
         return g.ndata.pop("h")
