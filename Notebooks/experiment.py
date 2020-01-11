@@ -123,7 +123,7 @@ print(f"Loaded Cora dataset.")
 
 permutation_files = os.listdir("../data/permutations")
 permutations = {
-    i: pickle.load(open("../data/permutations/cora_permutation{i}.pickle", "rb"))
+    i: pickle.load(open(f"../data/permutations/cora_permutation{i}.pickle", "rb"))
     for i in conf["permutations"]
 }
 print(f"Loaded {len(permutations)} different permutations.")
@@ -138,7 +138,7 @@ def get_split(perm, percentage_train, percentage_val, percentage_test):
     i_val = i_train + int(percentage_val * len(perm))
     # for the test split, we take the end of the permutation to ensure
     # that it is the same for different train/val percentages
-    i_test = len(perm) - int(percentage_val * len(perm))
+    i_test = len(perm) - int(percentage_test * len(perm))
 
     mask_train[perm[range(0, i_train)]] = 1
     mask_val[perm[range(i_train, i_val)]] = 1
@@ -155,9 +155,7 @@ splits = [
     {
         "permutation": perm_i,
         "split_percentages": split_per,
-        "split": get_split(
-            perm, split_per["train"], split_per["val"], split_per["test"]
-        ),
+        "split": get_split(perm, split_per["train"], split_per["val"], split_per["test"]),
     }
     for perm_i, perm in permutations.items()
     for split_per in conf["split_percentages"]
