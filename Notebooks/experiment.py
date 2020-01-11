@@ -271,6 +271,57 @@ mask_test = run["split"]["test"]
 # Training
 # ----------------------------------------------------------------------------
 
+loss_f = init_loss_function(labels=labels, func_type=run["loss_function"]["func_type"], nclasses=run["loss_function"]["nclasses"])
+optimizer = th.optim.Adam(net.parameters(), lr=run["learning_rate"], weight_decay=run["weight_decay"])
+net.train() # Set to training mode
 
-loss_func = init_loss_function
+dur = []
+loss_ev = []
+current_best = -np.infty #arbitrarily bad
+current_best_epoch = 0
+current_best_params = None
+no_improvement_for = 0
+
+for epoch in range(10000):
+    if epoch >=3:
+        t0 = time.time()
+
+    # Compute performance for train, validation and test set
+    net.eval()
+    prediction = net(net_features)
+    train_rand=pf.rand_score(labels[mask_train].numpy(),np.argmax(prediction[mask_train].detach().numpy(), axis=1))
+    validation_rand=pf.rand_score(labels[mask_val].numpy(),np.argmax(prediction[mask_val].detach().numpy(), axis=1))
+    test_rand=pf.rand_score(labels[mask_test].numpy(),np.argmax(prediction[mask_test].detach().numpy(), axis=1))
+
+    # Save current best model
+    if train_rand>current_best:
+        current_best = train_rand
+        current_best_epoch = epoch
+        current_best_params = copy.deepcopy(net.state_dict())
+        no_improvement_for = 0
+    else: no_improvement_for += 1
+    
+    # Apply early stopping
+    if epoch>run["early_stopping"]["min"] and no_improvement_for>run["early_stopping"]["wait"]:
+        break
+
+    net.train()
+
+    # Compute loss for train nodes
+    logits = net(net_features)
+
+    loss = loss_f(logits=logits,labels=labels,mask=mask_train)
+    loss_ev.append(loss.detach().item())
+    
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    if epoch >=3:
+        dur.append(time.time() - t0)
+        print(f"Epoch {epoch:05d} | Loss {loss.item():.4f} | Train.Rand {train_rand:.4f} | Valid.Rand {validation_rand:.4f} | Time(s) {np.mean(dur):.4f}")
+    else:
+        print(f"Epoch {epoch:05d} | Loss {loss.item():.4f} | Train.Rand {train_rand:.4f} | Valid.Rand {validation_rand:.4f} | Time(s) unknown")
+        
+net.load_state_dict(current_best_params)
 
