@@ -64,13 +64,13 @@ class GATLayer(nn.Module):
 class MultiHeadGATLayer(nn.Module):
     def __init__(self, g, in_feats, out_feats, num_heads, batchnorm, merge="cat"):
         super(MultiHeadGATLayer, self).__init__()
-        self.heads = nn.ModuleList()
+        self.num_heads = nn.ModuleList()
         for i in range(num_heads):
-            self.heads.append(GATLayer(g, in_feats, out_feats, batchnorm))
+            self.num_heads.append(GATLayer(g, in_feats, out_feats, batchnorm))
         self.merge = merge
 
     def forward(self, h):
-        head_outs = [attn_head(h) for attn_head in self.heads]
+        head_outs = [attn_head(h) for attn_head in self.num_heads]
         if self.merge == "cat":
             # concat on the output feature dimension (dim=1)
             return th.cat(head_outs, dim=1)
@@ -107,3 +107,89 @@ class GAT_Net(nn.Module):
         h = self.layer_out(h)
         h = F.log_softmax(h, 1)
         return h
+
+
+############################
+
+import torch
+import torch.nn as nn
+import dgl.function as fn
+from dgl.nn.pytorch import edge_softmax, GATConv
+
+
+class GAT_Net_fast(nn.Module):
+    def __init__(
+        self,
+        g,
+        in_feats,
+        hidden_size,
+        hidden_layers,
+        out_feats,
+        dropout,
+        batchnorm,
+        num_heads,
+        residual,
+    ):
+        super(GAT_Net_fast, self).__init__()
+        self.g = g
+        self.hidden_layers = hidden_layers
+        self.gat_layers = nn.ModuleList()
+        self.activation = F.elu
+        negative_slope = 0.2
+        feat_drop = attn_drop = dropout
+
+        self.batchnorm = batchnorm
+        self.bn = [nn.BatchNorm1d(hidden_size * num_heads) for i in range(hidden_layers)]
+
+        # input projection (no residual)
+        self.gat_layers.append(
+            GATConv(
+                in_feats,
+                hidden_size,
+                num_heads,
+                feat_drop,
+                attn_drop,
+                negative_slope,
+                False,
+                self.activation,
+            )
+        )
+        # hidden layers
+        for l in range(hidden_layers):
+            # due to multi-head, the in_feats = hidden_size * num_heads
+            self.gat_layers.append(
+                GATConv(
+                    hidden_size * num_heads,
+                    hidden_size,
+                    num_heads,
+                    feat_drop,
+                    attn_drop,
+                    negative_slope,
+                    residual,
+                    self.activation,
+                )
+            )
+        # output projection
+        self.gat_layers.append(
+            GATConv(
+                hidden_size * num_heads,
+                out_feats,
+                num_heads,
+                feat_drop,
+                attn_drop,
+                negative_slope,
+                residual,
+                None,
+            )
+        )
+
+    def forward(self, features):
+        h = features
+        h = self.gat_layers[0](self.g, h).flatten(1)
+        for l in range(self.hidden_layers):
+            h = self.bn[l](h)
+            h = self.gat_layers[l + 1](self.g, h).flatten(1)
+        # output projection
+        logits = self.gat_layers[-1](self.g, h).mean(1)
+        logits = F.log_softmax(logits, 1)
+        return logits
