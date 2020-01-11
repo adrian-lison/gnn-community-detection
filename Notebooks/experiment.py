@@ -1,6 +1,7 @@
 # ----------------------------------------------------------------------------
 # Implementation of GNN experiments
 
+#%%
 # ----------------------------------------------------------------------------
 # General Imports
 # ----------------------------------------------------------------------------
@@ -23,6 +24,7 @@ import copy
 import numpy as np
 import itertools
 import os
+import time
 
 # evaluation
 import performance as pf
@@ -81,6 +83,7 @@ conf = {
     ],
 }
 
+#%%
 # ----------------------------------------------------------------------------
 # Data Loading
 # ----------------------------------------------------------------------------
@@ -117,6 +120,7 @@ num_classes = len(np.unique(labels))
 
 print(f"Loaded Cora dataset.")
 
+#%%
 # ----------------------------------------------------------------------------
 # Selection of Training, Validation and Test Splits
 # ----------------------------------------------------------------------------
@@ -163,10 +167,10 @@ splits = [
 
 print(f"Created {len(splits)} different splits.")
 
+#%%
 # ----------------------------------------------------------------------------
 # Loss Functions
 # ----------------------------------------------------------------------------
-
 
 def init_loss_function(labels, func_type, nclasses=None):
     func = None
@@ -242,6 +246,8 @@ for run in runs:
     run["params"]["out_feats"] = num_classes
 
 print(f"Registered {len(runs)} different runs.")
+
+#%%
 # ----------------------------------------------------------------------------
 # Initialize Network with Parameters
 # ----------------------------------------------------------------------------
@@ -267,6 +273,8 @@ if run["net"]==LGNN_Net:
 mask_train = run["split"]["train"]
 mask_val = run["split"]["val"]
 mask_test = run["split"]["test"]
+
+#%%
 # ----------------------------------------------------------------------------
 # Training
 # ----------------------------------------------------------------------------
