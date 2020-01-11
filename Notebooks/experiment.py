@@ -246,7 +246,27 @@ print(f"Registered {len(runs)} different runs.")
 # Define Run
 # ----------------------------------------------------------------------------
 
+run = runs[2040]
+net = run["net"](**run["params"])
 
+# get the correct features
+if run["feature"] == "keywords":
+    net_features = features_keywords
+elif run["feature"] == "node_id":
+    net_features = features_nodeid
+elif run["feature"] == "node_degree":
+    net_features = features_degree_g
+
+# add features for line graph in case of LGNN
+if run["net"]==LGNN_Net:
+    if run["feature"] == "keywords":
+        net_features = (net_features,features_keywords_lg)
+    elif run["feature"] == "node_degree":
+        net_features = (net_features,features_degree_lg)
+
+mask_train = run["split"]["train"]
+mask_val = run["split"]["val"]
+mask_test = run["split"]["test"]
 # ----------------------------------------------------------------------------
 # Training
 # ----------------------------------------------------------------------------
