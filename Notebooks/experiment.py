@@ -29,8 +29,10 @@ import performance as pf
 
 # GNN classes
 from GCN import GCN_Net
-from GAT import GAT_Net
+from GAT import GAT_Net_fast
+from LGNN import LGNN_Net
 
+#%%
 # ----------------------------------------------------------------------------
 # Configuration
 # ----------------------------------------------------------------------------
