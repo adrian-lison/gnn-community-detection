@@ -47,7 +47,38 @@ conf = {
     "repetitions": 2,
     "learning_rates": [1e-2],
     "weight_decays": [0, 1e-2],
-    "nets": [{"type": GCN_Net, "early_stopping": {"min": 300, "wait": 100}}],
+    "loss_functions": [
+        {"func_type": "nll", "nclasses": "all"},
+        {"func_type": "inv", "nclasses": 6},
+        {"func_type": "inv", "nclasses": 7},
+    ],
+    "nets": [
+        {
+            "type": GCN_Net,
+            "early_stopping": {"min": 300, "wait": 100},
+            "features": ["node_id", "keywords"],
+            "structure": {"hidden_size": [50, 100], "hidden_layers": [1, 2]},
+            "tricks": {"dropout": [0, 0.2, 0.4], "batchnorm": [False, True]},
+        },
+        {
+            "type": GAT_Net_fast,
+            "early_stopping": {"min": 300, "wait": 100},
+            "features": ["node_id", "keywords"],
+            "structure": {"hidden_size": [50, 100], "hidden_layers": [2, 3], "num_heads": [1, 2]},
+            "tricks": {
+                "dropout": [0, 0.2, 0.4],
+                "batchnorm": [False, True],
+                "residual": [False, True],
+            },
+        },
+        {
+            "type": LGNN_Net,
+            "early_stopping": {"min": 300, "wait": 100},
+            "features": ["node_degree", "keywords"],
+            "structure": {"hidden_size": [50, 100], "hidden_layers": [1, 2]},
+            "tricks": {"dropout": [0, 0.2, 0.4], "batchnorm": [False, True], "radius": [1, 2, 3]},
+        },
+    ],
 }
 
 # ----------------------------------------------------------------------------
