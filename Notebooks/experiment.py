@@ -179,12 +179,69 @@ def init_loss_function(labels, func_type, nclasses=None):
         )
     return func
 
-
+#%%
 # ----------------------------------------------------------------------------
-# Networks and Parameters
+# Define Runs
 # ----------------------------------------------------------------------------
 
+runs = []
 
+for split in splits:
+    for repetition in range(conf["repetitions"]):
+        for learning_rate in conf["learning_rates"]:
+            for weight_decay in conf["weight_decays"]:
+                for loss_function in conf["loss_functions"]:
+                    for net in conf["nets"]:
+                        for feature in net["features"]:
+                            params = [{"placeholder": None}]
+                            for param_name, param_list in net["structure"].items():
+                                params = [
+                                    dict(**p, **{param_name: p_add})
+                                    for p in params
+                                    for p_add in param_list
+                                ]
+                            for param_name, param_list in net["tricks"].items():
+                                params = [
+                                    dict(**p, **{param_name: p_add})
+                                    for p in params
+                                    for p_add in param_list
+                                ]
+
+                            for param_set in params:
+                                runs.append(
+                                    {
+                                        "permutation": split["permutation"],
+                                        "split_percentages": split["split_percentages"],
+                                        "split": split["split"],
+                                        "repetition": repetition + 1,
+                                        "learning_rate": learning_rate,
+                                        "weight_decay": weight_decay,
+                                        "loss_function": loss_function,
+                                        "net": net["type"],
+                                        "early_stopping": net["early_stopping"],
+                                        "feature": feature,
+                                        "params": param_set,
+                                    }
+                                )
+
+for run in runs:
+    del run["params"]["placeholder"]
+    if run["net"]==LGNN_Net:
+        run["params"]["g"] = g
+        run["params"]["lg"] = lg
+    else:
+        run["params"]["g"] = g_selfl
+
+    if run["feature"] == "keywords":
+        run["params"]["in_feats"] = features_keywords.shape[1]
+    elif run["feature"] == "node_id":
+        run["params"]["in_feats"] = features_nodeid.shape[1]
+    else:
+        run["params"]["in_feats"] = 1
+
+    run["params"]["out_feats"] = num_classes
+
+print(f"Registered {len(runs)} different runs.")
 # ----------------------------------------------------------------------------
 # Define Run
 # ----------------------------------------------------------------------------
