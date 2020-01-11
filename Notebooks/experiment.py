@@ -94,7 +94,7 @@ g = DGLGraph(data.graph)
 # line graph
 lg = g.line_graph(backtracking=False)
 
-# graph with self-lopps
+# graph with self-loops
 g_selfl = data.graph
 g_selfl.remove_edges_from(nx.selfloop_edges(g_selfl))
 g_selfl = DGLGraph(g_selfl)
