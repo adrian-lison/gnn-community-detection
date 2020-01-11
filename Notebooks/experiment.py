@@ -243,7 +243,7 @@ for run in runs:
 
 print(f"Registered {len(runs)} different runs.")
 # ----------------------------------------------------------------------------
-# Define Run
+# Initialize Network with Parameters
 # ----------------------------------------------------------------------------
 
 run = runs[2040]
