@@ -113,6 +113,8 @@ features_nodeid = th.eye(g.number_of_nodes())
 features_degree_g = g.in_degrees().float().unsqueeze(1)
 features_degree_lg = lg.in_degrees().float().unsqueeze(1)
 
+num_classes = len(np.unique(labels))
+
 print(f"Loaded Cora dataset.")
 
 # ----------------------------------------------------------------------------
