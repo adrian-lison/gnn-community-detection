@@ -473,11 +473,12 @@ if __name__ == "__main__":
     print(
         f"\n###################################################################\nSTARTING EXPERIMENTS\n###################################################################"
     )
+    allstart=time.time()
 
     while current_job_i < len(runs):
         batchstart = time.time()
         print(
-            f"\n#-------------------------------------------------------------------\nNEXT BATCH (jobs {current_job_i}-{current_job_i+batchsize-1})\n#-------------------------------------------------------------------"
+            f"\n#-------------------------------------------------------------------\nNEXT BATCH (jobs {current_job_i}-{current_job_i+batchsize-1} of {len(runs)})\n#-------------------------------------------------------------------"
         )
         with Pool(processes=n_processes) as pool:  # start worker processes
             completed = pool.map(perform_run, runs[current_job_i : (current_job_i + batchsize)])
@@ -505,6 +506,9 @@ if __name__ == "__main__":
         print("\n-----------------\nPROGRESS SUMMARY:")
         print(progress_summary)
         progress_summary.to_csv(f'../status/status summary {conf["name"]}.csv', index=False)
+
+        estim_remaining = ((time.time()-allstart)/current_job_i)*(len(runs)-current_job_i)
+        print(f"Total estimated remaining time: {str(datetime.timedelta(seconds=estim_remaining))}")
 
     print(
         f"\n###################################################################\nEXPERIMENTS COMPLETED\n###################################################################"
