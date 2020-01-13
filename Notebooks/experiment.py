@@ -325,66 +325,6 @@ if __name__ == "__main__":
     # Configuration
     # ---------------------------------------------------------------------------------------------
 
-    conf = {
-        "name": "conf1",
-        "save_models": False,
-        "zip_models": False,
-        "save_logs": True,
-        "save_predictions": True,
-        "verbatim": False,
-        "batchsize": 2,
-        "n_processes": 2,
-        "split_percentages": [
-            {"train": 0.04, "val": 0.01, "test": 0.95},
-            {"train": 0.08, "val": 0.02, "test": 0.9},
-            {"train": 0.16, "val": 0.04, "test": 0.8},
-        ],
-        "permutations": [1, 2, 3, 4],
-        "repetitions": 2,
-        "learning_rates": [1e-2],
-        "weight_decays": [0, 1e-2],
-        "loss_functions": [
-            {"func_type": "nll", "nclasses": "all"},
-            {"func_type": "inv", "nclasses": 6},
-            {"func_type": "inv", "nclasses": 7},
-        ],
-        "nets": [
-            {
-                "type": "GCN_Net",
-                "early_stopping": {"min": 3, "wait": 5},
-                "features": ["node_id", "keywords"],
-                "structure": {"hidden_size": [50, 100], "hidden_layers": [1, 2]},
-                "tricks": {"dropout": [0, 0.2, 0.4], "batchnorm": [False, True]},
-            },
-            {
-                "type": "GAT_Net_fast",
-                "early_stopping": {"min": 3, "wait": 5},
-                "features": ["node_id", "keywords"],
-                "structure": {
-                    "hidden_size": [50, 100],
-                    "hidden_layers": [2, 3],
-                    "num_heads": [1, 2],
-                },
-                "tricks": {
-                    "dropout": [0, 0.2, 0.4],
-                    "batchnorm": [False, True],
-                    "residual": [False, True],
-                },
-            },
-            {
-                "type": "LGNN_Net",
-                "early_stopping": {"min": 3, "wait": 5},
-                "features": ["node_degree", "keywords"],
-                "structure": {"hidden_size": [50, 100], "hidden_layers": [1, 2]},
-                "tricks": {
-                    "dropout": [0, 0.2, 0.4],
-                    "batchnorm": [False, True],
-                    "radius": [1, 2, 3],
-                },
-            },
-        ],
-    }
-
     with open(f'../experiments/base configuration.json', "r") as f:
             conf = json.load(f)
 
