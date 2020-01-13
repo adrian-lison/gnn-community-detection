@@ -59,7 +59,7 @@
             "tricks": {
                 "dropout": [
                     0,
-                    0.4
+                    0.2
                 ],
                 "batchnorm": [
                     false,
@@ -94,7 +94,7 @@
             "tricks": {
                 "dropout": [
                     0,
-                    0.4
+                    0.2
                 ],
                 "batchnorm": [
                     false,
@@ -129,7 +129,7 @@
             "tricks": {
                 "dropout": [
                     0,
-                    0.4
+                    0.2
                 ],
                 "batchnorm": [
                     false,
