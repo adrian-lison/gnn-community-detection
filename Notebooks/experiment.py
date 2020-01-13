@@ -284,9 +284,15 @@ mask_test = run["split"]["test"]
 # Training
 # ----------------------------------------------------------------------------
 
-loss_f = init_loss_function(labels=labels, func_type=run["loss_function"]["func_type"], nclasses=run["loss_function"]["nclasses"])
-optimizer = th.optim.Adam(net.parameters(), lr=run["learning_rate"], weight_decay=run["weight_decay"])
-net.train() # Set to training mode
+loss_f = init_loss_function(
+    labels=labels,
+    func_type=run["loss_function"]["func_type"],
+    nclasses=run["loss_function"]["nclasses"],
+)
+optimizer = th.optim.Adam(
+    net.parameters(), lr=run["learning_rate"], weight_decay=run["weight_decay"]
+)
+net.train()  # Set to training mode
 
 dur = []
 loss_ev = []
@@ -330,8 +336,7 @@ for epoch in range(10000):
     # Compute loss for train nodes
     logits = net(net_features)
 
-    loss = loss_f(logits=logits,labels=labels,mask=mask_train)
-    loss_ev.append(loss.detach().item())
+    loss = loss_f(logits=logits, labels=labels, mask=mask_train)
     
     optimizer.zero_grad()
     loss.backward()
