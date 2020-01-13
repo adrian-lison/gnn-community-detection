@@ -302,20 +302,27 @@ for epoch in range(10000):
     # Compute performance for train, validation and test set
     net.eval()
     prediction = net(net_features)
-    train_rand=pf.rand_score(labels[mask_train].numpy(),np.argmax(prediction[mask_train].detach().numpy(), axis=1))
-    validation_rand=pf.rand_score(labels[mask_val].numpy(),np.argmax(prediction[mask_val].detach().numpy(), axis=1))
-    test_rand=pf.rand_score(labels[mask_test].numpy(),np.argmax(prediction[mask_test].detach().numpy(), axis=1))
+    train_rand = pf.rand_score(
+        labels[mask_train].numpy(), np.argmax(prediction[mask_train].detach().numpy(), axis=1)
+    )
+    validation_rand = pf.rand_score(
+        labels[mask_val].numpy(), np.argmax(prediction[mask_val].detach().numpy(), axis=1)
+    )
+    test_rand = pf.rand_score(
+        labels[mask_test].numpy(), np.argmax(prediction[mask_test].detach().numpy(), axis=1)
+    )
 
     # Save current best model
-    if train_rand>current_best:
-        current_best = train_rand
+    if validation_rand > current_best:
+        current_best = validation_rand
         current_best_epoch = epoch
         current_best_params = copy.deepcopy(net.state_dict())
         no_improvement_for = 0
-    else: no_improvement_for += 1
+    else:
+        no_improvement_for += 1
     
     # Apply early stopping
-    if epoch>run["early_stopping"]["min"] and no_improvement_for>run["early_stopping"]["wait"]:
+    if epoch > run["early_stopping"]["min"] and no_improvement_for > run["early_stopping"]["wait"]:
         break
 
     net.train()
