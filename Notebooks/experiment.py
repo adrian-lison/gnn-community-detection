@@ -112,9 +112,6 @@ def perform_run(run):
         # Initialization of Network with Parameters
         # ---------------------------------------------------------------------------------------------
 
-        if np.random.rand() > 0.5:
-            k = int("k")
-
         net = run["net"](**run["params"])
 
         # get the correct features
