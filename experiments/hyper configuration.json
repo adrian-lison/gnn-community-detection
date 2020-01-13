@@ -5,8 +5,8 @@
     "save_logs": true,
     "save_predictions": true,
     "verbatim": false,
-    "batchsize": 3,
-    "n_processes": 2,
+    "batchsize": 8,
+    "n_processes": 1,
     "overwrite": false,
     "split_percentages": [
         {
@@ -21,7 +21,7 @@
         3,
         4
     ],
-    "repetitions": 2,
+    "repetitions": 1,
     "learning_rates": [
         0.01
     ],
@@ -31,16 +31,16 @@
     ],
     "loss_functions": [
         {
-            "func_type": "inv",
-            "nclasses": 7
+            "func_type": "nll",
+            "nclasses": "all"
         }
     ],
     "nets": [
         {
             "type": "GCN_Net",
             "early_stopping": {
-                "min": 3,
-                "wait": 5
+                "min": 50,
+                "wait": 30
             },
             "features": [
                 "node_id",
@@ -48,8 +48,8 @@
             ],
             "structure": {
                 "hidden_size": [
-                    100,
-                    150
+                    50,
+                    100
                 ],
                 "hidden_layers": [
                     1,
@@ -70,8 +70,8 @@
         {
             "type": "GAT_Net_fast",
             "early_stopping": {
-                "min": 3,
-                "wait": 5
+                "min": 50,
+                "wait": 30
             },
             "features": [
                 "node_id",
@@ -79,8 +79,8 @@
             ],
             "structure": {
                 "hidden_size": [
-                    100,
-                    150
+                    50,
+                    100
                 ],
                 "hidden_layers": [
                     2,
@@ -109,8 +109,8 @@
         {
             "type": "LGNN_Net",
             "early_stopping": {
-                "min": 3,
-                "wait": 5
+                "min": 30,
+                "wait": 30
             },
             "features": [
                 "node_degree",
@@ -118,8 +118,8 @@
             ],
             "structure": {
                 "hidden_size": [
-                    100,
-                    150
+                    50,
+                    100
                 ],
                 "hidden_layers": [
                     1,
