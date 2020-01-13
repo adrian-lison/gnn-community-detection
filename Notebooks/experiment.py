@@ -40,6 +40,7 @@ from LGNN import LGNN_Net
 # ----------------------------------------------------------------------------
 
 conf = {
+    "name": "conf1",
     "split_percentages": [
         {"train": 0.04, "val": 0.01, "test": 0.95},
         {"train": 0.08, "val": 0.02, "test": 0.9},
@@ -183,12 +184,14 @@ def init_loss_function(labels, func_type, nclasses=None):
         )
     return func
 
+
 #%%
 # ----------------------------------------------------------------------------
 # Define Runs
 # ----------------------------------------------------------------------------
 
 runs = []
+run_id = 0
 
 for split in splits:
     for repetition in range(conf["repetitions"]):
@@ -214,6 +217,7 @@ for split in splits:
                             for param_set in params:
                                 runs.append(
                                     {
+                                        "name": f"{conf['name']}-{run_id}",
                                         "permutation": split["permutation"],
                                         "split_percentages": split["split_percentages"],
                                         "split": split["split"],
@@ -227,10 +231,11 @@ for split in splits:
                                         "params": param_set,
                                     }
                                 )
+                                run_id += 1
 
 for run in runs:
     del run["params"]["placeholder"]
-    if run["net"]==LGNN_Net:
+    if run["net"] == LGNN_Net:
         run["params"]["g"] = g
         run["params"]["lg"] = lg
     else:
@@ -264,11 +269,11 @@ elif run["feature"] == "node_degree":
     net_features = features_degree_g
 
 # add features for line graph in case of LGNN
-if run["net"]==LGNN_Net:
+if run["net"] == LGNN_Net:
     if run["feature"] == "keywords":
-        net_features = (net_features,features_keywords_lg)
+        net_features = (net_features, features_keywords_lg)
     elif run["feature"] == "node_degree":
-        net_features = (net_features,features_degree_lg)
+        net_features = (net_features, features_degree_lg)
 
 mask_train = run["split"]["train"]
 mask_val = run["split"]["val"]
