@@ -22,9 +22,14 @@ import networkx as nx
 import pickle
 import copy
 import numpy as np
+import pandas as pd
 import itertools
 import os
 import time
+import datetime
+import json
+from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED as zipDEF
 
 # evaluation
 import performance as pf
@@ -41,6 +46,10 @@ from LGNN import LGNN_Net
 
 conf = {
     "name": "conf1",
+    "save_models": False,
+    "zip_models": False,
+    "save_logs": True,
+    "save_predictions": True,
     "split_percentages": [
         {"train": 0.04, "val": 0.01, "test": 0.95},
         {"train": 0.08, "val": 0.02, "test": 0.9},
@@ -172,6 +181,7 @@ print(f"Created {len(splits)} different splits.")
 # ----------------------------------------------------------------------------
 # Loss Functions
 # ----------------------------------------------------------------------------
+
 
 def init_loss_function(labels, func_type, nclasses=None):
     func = None
@@ -305,7 +315,7 @@ current_best_params = None
 no_improvement_for = 0
 
 for epoch in range(10000):
-        t0 = time.time()
+    t0 = time.time()
 
     # Compute performance for train, validation and test set
     net.eval()
@@ -328,7 +338,7 @@ for epoch in range(10000):
         no_improvement_for = 0
     else:
         no_improvement_for += 1
-    
+
     # Apply early stopping
     if epoch > run["early_stopping"]["min"] and no_improvement_for > run["early_stopping"]["wait"]:
         break
@@ -339,13 +349,13 @@ for epoch in range(10000):
     logits = net(net_features)
 
     loss = loss_f(logits=logits, labels=labels, mask=mask_train)
-    
+
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
 
     dur = time.time() - t0
-        
+
     print(
         f"Epoch {epoch:05d} | Loss {loss.detach().item():.4f} | Train.Rand {train_rand:.4f} | Valid.Rand {validation_rand:.4f} | Test.Rand {test_rand:.4f} | Time(s) {dur:.4f}"
     )
@@ -379,4 +389,54 @@ res = {
     for split, scores in res.items()
     for score_name, score in scores.items()
 }
+
+#%%
+# ----------------------------------------------------------------------------
+# Storage of Results
+# ----------------------------------------------------------------------------
+
+# Save run and results
+# Create a flat dictionary which describes the run
+description = copy.copy(run)
+description["datetime"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+description["split_percentage_train"] = description["split_percentages"]["train"]
+description["split_percentage_val"] = description["split_percentages"]["val"]
+description["split_percentage_test"] = description["split_percentages"]["test"]
+del description["split_percentages"]
+description["loss_function_type"] = description["loss_function"]["func_type"]
+description["loss_function_nclasses"] = description["loss_function"]["nclasses"]
+del description["loss_function"]
+description["early_stopping_min"] = description["early_stopping"]["min"]
+description["early_stopping_wait"] = description["early_stopping"]["wait"]
+del description["early_stopping"]
+description = dict(**description, **description["params"])
+del description["params"]
+del description["g"]
+del description["split"]
+if "lg" in description:
+    del description["lg"]
+description["net"] = description["net"].__name__
+description = dict(**description, **res)
+
+with open(f'../results/{description["name"]}.json', "w") as f:
+    json.dump(data, f, indent=4)
+
+# Save logs
+if conf["save_logs"]:
+    log.to_csv(f'../logs/{description["name"]}.csv', index=False)
+
+# Save model
+if conf["save_models"]:
+    th.save(net.state_dict(), f'../models/{description["name"]}.pth')
+
+# ZIP-compress model
+if conf["save_models"] and conf["zip_models"]:
+    with ZipFile(f'../models/{description["name"]}.zip', "w") as zip:
+        zip.write(
+            filename=f'../models/{description["name"]}.pth', compress_type=zipDEF, compresslevel=9
+        )
+
+# Save prediction
+if conf["save_predictions"]:
+    np.save(f'../predictions/{description["name"]}.pred', final_prediction.numpy())
 
