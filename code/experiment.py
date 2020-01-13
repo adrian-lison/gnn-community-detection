@@ -160,18 +160,19 @@ def perform_run(run):
         for epoch in range(10000):
             t0 = time.time()
 
+            logits = net(net_features)
+            prediction = logits.detach()
+
             # Compute performance for train, validation and test set
-            net.eval()
-            prediction = net(net_features)
             train_rand = pf.rand_score(
                 labels[mask_train].numpy(),
-                np.argmax(prediction[mask_train].detach().numpy(), axis=1),
+                np.argmax(prediction[mask_train].numpy(), axis=1),
             )
             validation_rand = pf.rand_score(
-                labels[mask_val].numpy(), np.argmax(prediction[mask_val].detach().numpy(), axis=1)
+                labels[mask_val].numpy(), np.argmax(prediction[mask_val].numpy(), axis=1)
             )
             test_rand = pf.rand_score(
-                labels[mask_test].numpy(), np.argmax(prediction[mask_test].detach().numpy(), axis=1)
+                labels[mask_test].numpy(), np.argmax(prediction[mask_test].numpy(), axis=1)
             )
 
             # Save current best model
@@ -190,11 +191,7 @@ def perform_run(run):
             ):
                 break
 
-            net.train()
-
             # Compute loss for train nodes
-            logits = net(net_features)
-
             loss = loss_f(logits=logits, labels=labels, mask=mask_train)
 
             optimizer.zero_grad()
