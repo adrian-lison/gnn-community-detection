@@ -294,15 +294,17 @@ optimizer = th.optim.Adam(
 )
 net.train()  # Set to training mode
 
-dur = []
-loss_ev = []
-current_best = -np.infty #arbitrarily bad
+log = []
+# pd.DataFrame(
+#    columns=["epoch", "best_epoch", "dur", "loss", "rand_train", "rand_val", "rand_test"]
+# )
+
+current_best = -np.infty  # arbitrarily bad
 current_best_epoch = 0
 current_best_params = None
 no_improvement_for = 0
 
 for epoch in range(10000):
-    if epoch >=3:
         t0 = time.time()
 
     # Compute performance for train, validation and test set
@@ -342,11 +344,25 @@ for epoch in range(10000):
     loss.backward()
     optimizer.step()
 
-    if epoch >=3:
-        dur.append(time.time() - t0)
-        print(f"Epoch {epoch:05d} | Loss {loss.item():.4f} | Train.Rand {train_rand:.4f} | Valid.Rand {validation_rand:.4f} | Time(s) {np.mean(dur):.4f}")
-    else:
-        print(f"Epoch {epoch:05d} | Loss {loss.item():.4f} | Train.Rand {train_rand:.4f} | Valid.Rand {validation_rand:.4f} | Time(s) unknown")
+    dur = time.time() - t0
         
+    print(
+        f"Epoch {epoch:05d} | Loss {loss.detach().item():.4f} | Train.Rand {train_rand:.4f} | Valid.Rand {validation_rand:.4f} | Test.Rand {test_rand:.4f} | Time(s) {dur:.4f}"
+    )
+
+    log.append(
+        {
+            "epoch": epoch,
+            "epoch_best": current_best_epoch,
+            "dur": dur,
+            "loss": loss.detach().item(),
+            "rand_train": train_rand,
+            "rand_val": validation_rand,
+            "rand_val_best": current_best,
+            "rand_test": test_rand,
+        }
+    )
+
 net.load_state_dict(current_best_params)
+log = pd.DataFrame(log)
 
