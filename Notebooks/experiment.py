@@ -433,7 +433,17 @@ if __name__ == "__main__":
                                     )
                                     run_id += 1
 
+    already_completed = [re.search(f'({conf["name"]}-\d)\.json',file).group(1) for file in os.listdir("../results") if re.search(f'({conf["name"]}-\d)\.json',file) is not None]
+    skipped = 0
+
     for run in runs:
+        if (not conf["overwrite"]) and run["name"] in already_completed:
+            skipped += 1
+            run["skip"]=True
+            continue
+        else:
+            run["skip"]=False
+
         del run["params"]["placeholder"]
         if run["net"] == LGNN_Net:
             run["params"]["g"] = g
@@ -450,7 +460,9 @@ if __name__ == "__main__":
 
         run["params"]["out_feats"] = num_classes
 
-    print(f"Registered {len(runs)} different runs.")
+    runs = [run for run in runs if (not run["skip"])]
+
+    print(f"Registered {len(runs)} different runs ({skipped} already existing were skipped).")
 
     #%%
     # ---------------------------------------------------------------------------------------------
