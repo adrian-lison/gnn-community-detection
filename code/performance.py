@@ -94,15 +94,14 @@ def variation_of_information_score(labels, preds):
 # Commodity Functions
 
 
-def compute_performance(labels, logits, mask):
+def compute_performance(labels, logits, splits):
     logits = logits.detach().numpy()
     preds = np.argmax(logits, axis=1)
     labels = labels.numpy()
-    mask = mask.numpy().astype(bool)
     pred_sets = {"All ": preds,
-                 "Train": preds[mask], "Test": preds[np.invert(mask)]}
+                 "Train": preds[splits["train"]], "Val": preds[splits["val"]], "Test": preds[splits["test"]]}
     label_sets = {"All ": labels,
-                  "Train": labels[mask], "Test": labels[np.invert(mask)]}
+                  "Train": labels[splits["train"]], "Val": labels[splits["val"]], "Test": labels[splits["test"]]}
     eval_functions = {
         "Rand-Index": rand_score,
         "Mutual Information": mutual_info_score,
@@ -112,8 +111,8 @@ def compute_performance(labels, logits, mask):
     return scores
 
 
-def print_performance(labels, logits, mask):
-    scores = compute_performance(labels, logits, mask)
+def print_performance(labels, logits, splits):
+    scores = compute_performance(labels, logits, splits)
     for subset_n, data in scores.items():
         eval_message = f"\n{subset_n}:\n"
         for func, score in data.items():
@@ -121,6 +120,6 @@ def print_performance(labels, logits, mask):
         print(eval_message)
 
 
-def performance_as_df(labels, logits, mask):
-    scores = compute_performance(labels, logits, mask)
+def performance_as_df(labels, logits, splits):
+    scores = compute_performance(labels, logits, splits)
     return pd.DataFrame(scores)

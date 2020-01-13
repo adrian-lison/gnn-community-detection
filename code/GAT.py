@@ -9,6 +9,8 @@ import dgl.function as fn
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
+from dgl.nn.pytorch import edge_softmax, GATConv
+
 from dgl import DGLGraph
 
 import numpy as np
@@ -107,14 +109,6 @@ class GAT_Net(nn.Module):
         h = self.layer_out(h)
         h = F.log_softmax(h, 1)
         return h
-
-
-############################
-
-import torch
-import torch.nn as nn
-import dgl.function as fn
-from dgl.nn.pytorch import edge_softmax, GATConv
 
 
 class GAT_Net_fast(nn.Module):
