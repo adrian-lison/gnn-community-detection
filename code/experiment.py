@@ -475,6 +475,7 @@ if __name__ == "__main__":
     )
 
     while current_job_i < len(runs):
+        batchstart = time.time()
         print(
             f"\n#-------------------------------------------------------------------\nNEXT BATCH (jobs {current_job_i}-{current_job_i+batchsize-1})\n#-------------------------------------------------------------------"
         )
@@ -483,7 +484,7 @@ if __name__ == "__main__":
 
         progress.append(pd.DataFrame(completed).sort_values("time"))
         witherror = progress[-1]["error"].notnull().sum()
-        print("\n-----------------\nBATCH COMPLETED:")
+        print(f"\n-----------------\nBATCH COMPLETED ({time.time()-batchstart:.4f} seconds):")
         print(
             f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {len(completed)-witherror} jobs completed, {witherror} jobs failed:"
         )
