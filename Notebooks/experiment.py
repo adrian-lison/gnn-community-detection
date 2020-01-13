@@ -366,3 +366,17 @@ for epoch in range(10000):
 net.load_state_dict(current_best_params)
 log = pd.DataFrame(log)
 
+#%%
+# ----------------------------------------------------------------------------
+# Evaluation
+# ----------------------------------------------------------------------------
+
+net.eval()  # Set net to evaluation mode
+final_prediction = net(net_features).detach()
+res = pf.compute_performance(labels, final_prediction, splits=run["split"])
+res = {
+    f"{score_name}_{split}": score
+    for split, scores in res.items()
+    for score_name, score in scores.items()
+}
+
