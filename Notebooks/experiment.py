@@ -459,7 +459,7 @@ if __name__ == "__main__":
             run["params"]["in_feats"] = 1
 
         run["params"]["out_feats"] = num_classes
-
+    
     runs = [run for run in runs if (not run["skip"])]
 
     print(f"Registered {len(runs)} different runs ({skipped} already existing were skipped).")
@@ -468,7 +468,6 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------------------------
     # Parallel Execution
     # ---------------------------------------------------------------------------------------------
-    jobs = runs[0:4]
 
     progress = []
     batchsize = conf["batchsize"]
@@ -478,12 +477,12 @@ if __name__ == "__main__":
         f"\n###################################################################\nSTARTING EXPERIMENTS\n###################################################################"
     )
 
-    while current_job_i < len(jobs):
+    while current_job_i < len(runs):
         print(
             f"\n#-------------------------------------------------------------------\nNEXT BATCH (jobs {current_job_i}-{current_job_i+batchsize-1})\n#-------------------------------------------------------------------"
         )
         with Pool(processes=n_processes) as pool:  # start worker processes
-            completed = pool.map(perform_run, jobs[current_job_i : (current_job_i + batchsize)])
+            completed = pool.map(perform_run, runs[current_job_i : (current_job_i + batchsize)])
 
         progress.append(pd.DataFrame(completed).sort_values("time"))
         witherror = progress[-1]["error"].notnull().sum()
@@ -495,7 +494,7 @@ if __name__ == "__main__":
         current_job_i += batchsize
 
         status = pd.concat(progress)
-        status.to_csv(f'../results/job overview {conf["name"]}.csv', index=False)
+        status.to_csv(f'../status/job overview {conf["name"]}.csv', index=False)
         status["is_error"] = status["error"].notnull()
         progress_summary = pd.concat(
             [
@@ -507,7 +506,7 @@ if __name__ == "__main__":
 
         print("\n-----------------\nPROGRESS SUMMARY:")
         print(progress_summary)
-        progress_summary.to_csv(f'../results/status summary {conf["name"]}.csv', index=False)
+        progress_summary.to_csv(f'../status/status summary {conf["name"]}.csv', index=False)
 
     print(
         f"\n###################################################################\nEXPERIMENTS COMPLETED\n###################################################################"
