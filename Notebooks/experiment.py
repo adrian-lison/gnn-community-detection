@@ -31,6 +31,8 @@ import json
 from zipfile import ZipFile
 from zipfile import ZIP_DEFLATED as zipDEF
 import traceback
+import re
+import sys
 
 # evaluation
 import performance as pf
@@ -324,11 +326,11 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------------------------
     # Configuration
     # ---------------------------------------------------------------------------------------------
+    conf_file = sys.argv[1]
 
-    with open(f'../experiments/base configuration.json', "r") as f:
+    print(conf_file)
+    with open(f'{conf_file}', "r") as f:
             conf = json.load(f)
-
-    
 
     #%%
     # ---------------------------------------------------------------------------------------------
