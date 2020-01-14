@@ -33,8 +33,6 @@ from zipfile import ZIP_DEFLATED as zipDEF
 import traceback
 import re
 import sys
-import psutil
-import gc
 
 # evaluation
 import performance as pf
@@ -45,11 +43,6 @@ from GAT import GAT_Net_fast
 from LGNN import LGNN_Net
 
 from multiprocessing import Pool
-
-
-def mem():
-    return psutil.Process(os.getpid()).memory_info().rss // 1024
-
 
 #%%
 # -------------------------------------------------------------------------------------------------
@@ -164,22 +157,11 @@ def perform_run(run):
         current_best_params = None
         no_improvement_for = 0
 
-        # startmem=mem()
-
-        save_g = copy.deepcopy(g)
-        save_lg = copy.deepcopy(lg)
-
         for epoch in range(10000):
 
             t0 = time.time()
 
-            # print("------------------")
-            # epochmem=mem()
-            # lastmem=epochmem
-
             logits = net(net_features)
-            # print(f"Forward: {mem()-lastmem}")
-
             prediction = logits.detach()
 
             # Compute performance for train, validation and test set
@@ -209,26 +191,15 @@ def perform_run(run):
             ):
                 break
 
-            # lastmem=mem()
             # Compute loss for train nodes
             loss = loss_f(logits=logits, labels=labels, mask=mask_train)
-            # print(f"Loss: {mem()-lastmem}")
 
-            # lastmem=mem()
             optimizer.zero_grad()
             net.zero_grad()
             loss.backward()
             optimizer.step()
-            # g = copy.deepcopy(save_g)
-            # lg = copy.deepcopy(save_lg)
-            # gc.collect()
-            # print(f"Optim: {mem()-lastmem}")
-
-            # print(f"TOTAL: {mem()-startmem}")
 
             dur = time.time() - t0
-
-            # print(f"Total size: {mem()-startmem}| Model size: {sys.getsizeof(net)} | Optimizer size: {sys.getsizeof(optimizer)}")
 
             if run["verbatim"]:
                 print(
