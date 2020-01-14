@@ -106,7 +106,7 @@ def init_loss_function(labels, func_type, nclasses=None):
 def perform_run(run):
     starttime = time.time()
     print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: Started run {run['name']}.")
-    print(run)
+
     try:
         # ---------------------------------------------------------------------------------------------
         # Initialization of Network with Parameters
