@@ -37,28 +37,21 @@ class LGNNCore(nn.Module):
 
     def aggregate_radius(self, radius, z):
         """Return a list containing features gathered from multiple hops in a radius."""
-        """# initializing list to collect message passing result
+        # initializing list to collect message passing result
         z_list = []
         g.ndata["z"] = z
         # pulling message from 1-hop neighbourhood
-        g.update_all(message_func=fn.copy_src(src="z", out="m"), reduce_func=fn.sum(msg="m", out="z"))
+        g.update_all(
+            message_func=fn.copy_src(src="z", out="m"), reduce_func=fn.sum(msg="m", out="z")
+        )
         z_list.append(g.ndata["z"])
         for i in range(radius - 1):
             for j in range(2 ** i):
                 # pulling message from 2^j neighborhood
                 g.update_all(fn.copy_src(src="z", out="m"), fn.sum(msg="m", out="z"))
             z_list.append(g.ndata["z"])
-        try:
-            res = g.ndata.pop("z")
-        except Exception as e:
-            print(e)"""
-
-        self.g.ndata["z"] = z
-        self.g.update_all(
-            message_func=fn.copy_src(src="z", out="m"), reduce_func=fn.sum(msg="m", out="z")
-        )
-        res = self.g.ndata.pop("z")
-        return res
+        g.ndata.pop("z")
+        return z_list
 
     def forward(self, feat_a, feat_b, deg, pm_pd):
         # term "prev"
@@ -68,12 +61,10 @@ class LGNNCore(nn.Module):
 
         # term "radius"
         # aggregate 2^j-hop features
-        # hop2j_list = self.aggregate_radius(self.radius, feat_a)
+        hop2j_list = self.aggregate_radius(self.radius, g, feat_a)
         # apply linear transformation
-        # hop2j_list = [linear(x) for linear, x in zip(self.linear_radius, hop2j_list)]
-        # radius_proj = sum(hop2j_list)
-        # radius_proj = self.linear_radius[0](hop2j_list)
-        radius_proj = self.gcnconv.forward(self.g, feat_a)
+        hop2j_list = [linear(x) for linear, x in zip(self.linear_radius, hop2j_list)]
+        radius_proj = sum(hop2j_list)
 
         # term "fuse"
         fuse = self.linear_fuse(th.mm(pm_pd, feat_b))
@@ -98,11 +89,12 @@ class LGNNLayer(nn.Module):
         self.g_layer = LGNNCore(self.g, in_feats, out_feats, radius, batchnorm)
         self.lg_layer = LGNNCore(self.lg, in_feats_lg, out_feats, radius, batchnorm)
 
-    def forward(self, h, lg_h, deg_g, deg_lg, pm_pd):
+    def forward(self, h, lg_h, deg_g, deg_lg, pm_pd, last=False):
         next_h = self.g_layer(h, lg_h, deg_g, pm_pd)
+        if last:
+            return next_h
         pm_pd_y = th.transpose(pm_pd, 0, 1)
-        # next_lg_h = self.lg_layer(lg_h, h, deg_lg, pm_pd_y)
-        next_lg_h = th.tensor.rand(lg_h.shape[0], next_h.shape[1])
+        next_lg_h = self.lg_layer(lg_h, h, deg_lg, pm_pd_y)
         return next_h, next_lg_h
 
 
@@ -150,9 +142,12 @@ class LGNN_Net_old(nn.Module):
 
         h, lg_h = self.layer_in(h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
 
-        for layer in self.layer_hidden:
+        for i, layer in enumerate(self.layer_hidden):
             h = self.dropout(h)
-            h, lg_h = layer(h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
+            if i == len(self.layer_hidden):
+                h = layer(h, lg_h, self.deg_g, self.deg_lg, self.pmpd, last=True)
+            else:
+                h, lg_h = layer(h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
 
         h = self.dropout(h)
         h = self.layer_out(h)
@@ -206,16 +201,16 @@ class LGNNModule(nn.Module):
             x = self.bn_x(x)
 
         if last:
-            return x
-        else:
-            sum_y = sum(gamma(z) for gamma, z in zip(self.gamma_list, self.aggregate(lg, y)))
+            return x  # do not compute the rest of the lgnn part to avoid memory leak
 
-            y = self.gamma_y(y) + self.gamma_deg(deg_lg * y) + sum_y + self.gamma_x(pmpd_x)
-            y = th.cat([y[:, :n], F.relu(y[:, n:])], 1)
-            if self.batchnorm:
-                y = self.bn_y(y)
+        sum_y = sum(gamma(z) for gamma, z in zip(self.gamma_list, self.aggregate(lg, y)))
 
-            return x, y
+        y = self.gamma_y(y) + self.gamma_deg(deg_lg * y) + sum_y + self.gamma_x(pmpd_x)
+        y = th.cat([y[:, :n], F.relu(y[:, n:])], 1)
+        if self.batchnorm:
+            y = self.bn_y(y)
+
+        return x, y
 
 
 class LGNN_Net(nn.Module):
@@ -227,7 +222,7 @@ class LGNN_Net(nn.Module):
         self.lg = lg
         in_feats = [in_feats] + [hidden_size] * hidden_layers
         self.module_list = nn.ModuleList(
-            [GNNModule(m, n, radius, batchnorm) for m, n in zip(in_feats[:-1], in_feats[1:])]
+            [LGNNModule(m, n, radius, batchnorm) for m, n in zip(in_feats[:-1], in_feats[1:])]
         )
         self.linear = nn.Linear(in_feats[-1], out_feats)
         self.dropout = nn.Dropout(dropout)
@@ -242,7 +237,7 @@ class LGNN_Net(nn.Module):
         (h, lg_h) = features
         for i, module in enumerate(self.module_list):
             if i == len(self.module_list) - 1:
-                h = self.lastmodule(
+                h = module(
                     self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd, last=True
                 )  # the last pass should only return h, otherwhise we get a memory leak
                 h = self.dropout(h)
@@ -250,4 +245,6 @@ class LGNN_Net(nn.Module):
                 h, lg_h = module(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
                 h = self.dropout(h)
                 lg_h = self.dropout(lg_h)
-        return self.linear(h)
+        h = self.linear(h)
+        h = F.log_softmax(h, 1)
+        return h
