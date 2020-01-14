@@ -33,6 +33,8 @@ from zipfile import ZIP_DEFLATED as zipDEF
 import traceback
 import re
 import sys
+import psutil
+import gc
 
 # evaluation
 import performance as pf
@@ -42,8 +44,12 @@ from GCN import GCN_Net
 from GAT import GAT_Net_fast
 from LGNN import LGNN_Net
 
-#%%
 from multiprocessing import Pool
+
+
+def mem():
+    return psutil.Process(os.getpid()).memory_info().rss // 1024
+
 
 #%%
 # -------------------------------------------------------------------------------------------------
@@ -107,6 +113,7 @@ def init_loss_function(labels, func_type, nclasses=None):
 def perform_run(run):
     starttime = time.time()
     print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: Started run {run['name']}.")
+    print(run)
     try:
         # ---------------------------------------------------------------------------------------------
         # Initialization of Network with Parameters
@@ -157,16 +164,27 @@ def perform_run(run):
         current_best_params = None
         no_improvement_for = 0
 
+        # startmem=mem()
+
+        save_g = copy.deepcopy(g)
+        save_lg = copy.deepcopy(lg)
+
         for epoch in range(10000):
+
             t0 = time.time()
 
+            # print("------------------")
+            # epochmem=mem()
+            # lastmem=epochmem
+
             logits = net(net_features)
+            # print(f"Forward: {mem()-lastmem}")
+
             prediction = logits.detach()
 
             # Compute performance for train, validation and test set
             train_rand = pf.rand_score(
-                labels[mask_train].numpy(),
-                np.argmax(prediction[mask_train].numpy(), axis=1),
+                labels[mask_train].numpy(), np.argmax(prediction[mask_train].numpy(), axis=1)
             )
             validation_rand = pf.rand_score(
                 labels[mask_val].numpy(), np.argmax(prediction[mask_val].numpy(), axis=1)
@@ -191,14 +209,26 @@ def perform_run(run):
             ):
                 break
 
+            # lastmem=mem()
             # Compute loss for train nodes
             loss = loss_f(logits=logits, labels=labels, mask=mask_train)
+            # print(f"Loss: {mem()-lastmem}")
 
+            # lastmem=mem()
             optimizer.zero_grad()
+            net.zero_grad()
             loss.backward()
             optimizer.step()
+            # g = copy.deepcopy(save_g)
+            # lg = copy.deepcopy(save_lg)
+            # gc.collect()
+            # print(f"Optim: {mem()-lastmem}")
+
+            # print(f"TOTAL: {mem()-startmem}")
 
             dur = time.time() - t0
+
+            # print(f"Total size: {mem()-startmem}| Model size: {sys.getsizeof(net)} | Optimizer size: {sys.getsizeof(optimizer)}")
 
             if run["verbatim"]:
                 print(
@@ -323,8 +353,8 @@ if __name__ == "__main__":
     conf_file = sys.argv[1]
 
     print(conf_file)
-    with open(f'{conf_file}', "r") as f:
-            conf = json.load(f)
+    with open(f"{conf_file}", "r") as f:
+        conf = json.load(f)
 
     #%%
     # ---------------------------------------------------------------------------------------------
@@ -372,10 +402,13 @@ if __name__ == "__main__":
     print(f"Created {len(splits)} different splits.")
 
     def get_net(name):
-        if name=="GCN_Net": return GCN_Net
-        if name=="GAT_Net_fast": return GAT_Net_fast
-        if name=="LGNN_Net": return LGNN_Net
-        raise ValueError(f'Network {name} provided in config does not exist.')
+        if name == "GCN_Net":
+            return GCN_Net
+        if name == "GAT_Net_fast":
+            return GAT_Net_fast
+        if name == "LGNN_Net":
+            return LGNN_Net
+        raise ValueError(f"Network {name} provided in config does not exist.")
 
     #%%
     # ---------------------------------------------------------------------------------------------
@@ -430,16 +463,20 @@ if __name__ == "__main__":
                                     )
                                     run_id += 1
 
-    already_completed = [re.search(f'({conf["name"]}-\d*)\.json',file).group(1) for file in os.listdir("../results") if re.search(f'({conf["name"]}-\d*)\.json',file) is not None]
+    already_completed = [
+        re.search(f'({conf["name"]}-\d*)\.json', file).group(1)
+        for file in os.listdir("../results")
+        if re.search(f'({conf["name"]}-\d*)\.json', file) is not None
+    ]
     skipped = 0
 
     for run in runs:
         if (not conf["overwrite"]) and run["name"] in already_completed:
             skipped += 1
-            run["skip"]=True
+            run["skip"] = True
             continue
         else:
-            run["skip"]=False
+            run["skip"] = False
 
         del run["params"]["placeholder"]
         if run["net"] == LGNN_Net:
@@ -456,7 +493,7 @@ if __name__ == "__main__":
             run["params"]["in_feats"] = 1
 
         run["params"]["out_feats"] = num_classes
-    
+
     runs = [run for run in runs if (not run["skip"])]
 
     print(f"Registered {len(runs)} different runs ({skipped} already existing were skipped).")
@@ -473,7 +510,7 @@ if __name__ == "__main__":
     print(
         f"\n###################################################################\nSTARTING EXPERIMENTS\n###################################################################"
     )
-    allstart=time.time()
+    allstart = time.time()
 
     while current_job_i < len(runs):
         batchstart = time.time()
@@ -507,7 +544,7 @@ if __name__ == "__main__":
         print(progress_summary)
         progress_summary.to_csv(f'../status/status summary {conf["name"]}.csv', index=False)
 
-        estim_remaining = ((time.time()-allstart)/current_job_i)*(len(runs)-current_job_i)
+        estim_remaining = ((time.time() - allstart) / current_job_i) * (len(runs) - current_job_i)
         print(f"Total estimated remaining time: {str(datetime.timedelta(seconds=estim_remaining))}")
 
     print(
