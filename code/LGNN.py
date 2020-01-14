@@ -160,8 +160,8 @@ class LGNN_Net_old(nn.Module):
         return h
 
 
-class GNNModule(nn.Module):
-    def __init__(self, in_feats, out_feats, radius):
+class LGNNModule(nn.Module):
+    def __init__(self, in_feats, out_feats, radius, batchnorm):
         super().__init__()
         self.out_feats = out_feats
         self.radius = radius
@@ -175,6 +175,7 @@ class GNNModule(nn.Module):
         self.gamma_y, self.gamma_deg, self.gamma_x = new_linear(), new_linear(), new_linear()
         self.gamma_list = new_linear_list()
 
+        self.batchnorm = batchnorm
         self.bn_x = nn.BatchNorm1d(out_feats)
         self.bn_y = nn.BatchNorm1d(out_feats)
 
@@ -201,19 +202,20 @@ class GNNModule(nn.Module):
         x = self.theta_x(x) + self.theta_deg(deg_g * x) + sum_x + self.theta_y(pmpd_y)
         n = self.out_feats // 2
         x = th.cat([x[:, :n], F.relu(x[:, n:])], 1)
-        x = self.bn_x(x)
+        if self.batchnorm:
+            x = self.bn_x(x)
 
-        if not last:
+        if last:
+            return x
+        else:
             sum_y = sum(gamma(z) for gamma, z in zip(self.gamma_list, self.aggregate(lg, y)))
 
             y = self.gamma_y(y) + self.gamma_deg(deg_lg * y) + sum_y + self.gamma_x(pmpd_x)
             y = th.cat([y[:, :n], F.relu(y[:, n:])], 1)
-            y = self.bn_y(y)
+            if self.batchnorm:
+                y = self.bn_y(y)
 
             return x, y
-
-        else:
-            return x
 
 
 class LGNN_Net(nn.Module):
@@ -225,20 +227,11 @@ class LGNN_Net(nn.Module):
         self.lg = lg
         in_feats = [in_feats] + [hidden_size] * hidden_layers
         self.module_list = nn.ModuleList(
-            [GNNModule(m, n, radius) for m, n in zip(in_feats[:-1], in_feats[1:])]
+            [GNNModule(m, n, radius, batchnorm) for m, n in zip(in_feats[:-1], in_feats[1:])]
         )
         self.linear = nn.Linear(in_feats[-1], out_feats)
+        self.dropout = nn.Dropout(dropout)
 
-        # pmpd
-        # self.pmpd = th.zeros([self.g.number_of_nodes(), self.g.number_of_edges()], dtype=th.long)
-        # for s, d in zip(self.g.edges()[0], self.g.edges()[1]):
-        #    self.pmpd[s, self.g.edge_id(s, d)] = -1
-        #    self.pmpd[d, self.g.edge_id(s, d)] = 1
-        # inputs_pmpd = ss.coo_matrix(matrix, dtype="int64")
-        # indices = th.LongTensor([inputs_pmpd.row, inputs_pmpd.col])
-        # self.pmpd = th.LongTensor(th.sparse.FloatTensor(
-        #    indices, th.from_numpy(inputs_pmpd.data).float(), inputs_pmpd.shape
-        # ).to_dense())
         self.pmpd = self.g.edges()[0]
 
         # compute the degrees
@@ -247,7 +240,14 @@ class LGNN_Net(nn.Module):
 
     def forward(self, features):
         (h, lg_h) = features
-        for module in self.module_list:
-            h, lg_h = module(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
-        h = self.lastmodule(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd, last=True)
+        for i, module in enumerate(self.module_list):
+            if i == len(self.module_list) - 1:
+                h = self.lastmodule(
+                    self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd, last=True
+                )  # the last pass should only return h, otherwhise we get a memory leak
+                h = self.dropout(h)
+            else:
+                h, lg_h = module(self.g, self.lg, h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
+                h = self.dropout(h)
+                lg_h = self.dropout(lg_h)
         return self.linear(h)
