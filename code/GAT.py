@@ -9,7 +9,9 @@ import dgl.function as fn
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from dgl.nn.pytorch import edge_softmax, GATConv
+from dgl.nn.pytorch import edge_softmax
+
+from Sparsemax import Sparsemax
 
 from dgl import DGLGraph
 
@@ -109,6 +111,102 @@ class GAT_Net(nn.Module):
         h = self.layer_out(h)
         h = F.log_softmax(h, 1)
         return h
+
+
+class GATConv(nn.Module):
+    def __init__(
+        self,
+        in_feats,
+        out_feats,
+        num_heads,
+        feat_drop=0.0,
+        attn_drop=0.0,
+        negative_slope=0.2,
+        residual=False,
+        activation=None,
+        sparsemax=False,
+    ):
+        super(GATConv, self).__init__()
+        self._num_heads = num_heads
+        self._in_feats = in_feats
+        self._out_feats = out_feats
+        self.fc = nn.Linear(in_feats, out_feats * num_heads, bias=False)
+        self.attn_l = nn.Parameter(th.FloatTensor(size=(1, num_heads, out_feats)))
+        self.attn_r = nn.Parameter(th.FloatTensor(size=(1, num_heads, out_feats)))
+        self.feat_drop = nn.Dropout(feat_drop)
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.leaky_relu = nn.LeakyReLU(negative_slope)
+
+        self.sparsemax = sparsemax
+        self.sparsemaxF = Sparsemax(dim=1)
+
+        if residual:
+            if in_feats != out_feats:
+                self.res_fc = nn.Linear(in_feats, num_heads * out_feats, bias=False)
+            else:
+                self.res_fc = Identity()
+        else:
+            self.register_buffer("res_fc", None)
+        self.reset_parameters()
+        self.activation = activation
+
+    def reset_parameters(self):
+        """Reinitialize learnable parameters."""
+        gain = nn.init.calculate_gain("relu")
+        nn.init.xavier_normal_(self.fc.weight, gain=gain)
+        nn.init.xavier_normal_(self.attn_l, gain=gain)
+        nn.init.xavier_normal_(self.attn_r, gain=gain)
+        if isinstance(self.res_fc, nn.Linear):
+            nn.init.xavier_normal_(self.res_fc.weight, gain=gain)
+
+    def forward(self, graph, feat):
+        r"""Compute graph attention network layer.
+
+        Parameters
+        ----------
+        graph : DGLGraph
+            The graph.
+        feat : torch.Tensor
+            The input feature of shape :math:`(N, D_{in})` where :math:`D_{in}`
+            is size of input feature, :math:`N` is the number of nodes.
+
+        Returns
+        -------
+        torch.Tensor
+            The output feature of shape :math:`(N, H, D_{out})` where :math:`H`
+            is the number of heads, and :math:`D_{out}` is size of output feature.
+        """
+        graph = graph.local_var()
+        h = self.feat_drop(feat)
+        feat = self.fc(h).view(-1, self._num_heads, self._out_feats)
+        el = (feat * self.attn_l).sum(dim=-1).unsqueeze(-1)
+        er = (feat * self.attn_r).sum(dim=-1).unsqueeze(-1)
+        graph.ndata.update({"ft": feat, "el": el, "er": er})
+        # compute edge attention
+        graph.apply_edges(fn.u_add_v("el", "er", "e"))
+        # apply leaky relu
+        graph.apply_edges(lambda edges: {"e": self.leaky_relu(edges.data["e"])})
+
+        # compute softmax/sparsemax
+        if sparsemax:
+            graph.apply_edges(lambda edges: {"a": self.sparsemaxF(edges.data["e"])})
+        else:
+            graph.edata["a"] = edge_softmax(graph, graph.edata.pop("e"))
+
+        # attention dropout
+        graph.apply_edges(lambda edges: {"a": self.self.attn_drop(edges.data["a"])})
+
+        # message passing
+        graph.update_all(fn.u_mul_e("ft", "a", "m"), fn.sum("m", "ft"))
+        rst = graph.ndata["ft"]
+        # residual
+        if self.res_fc is not None:
+            resval = self.res_fc(h).view(h.shape[0], -1, self._out_feats)
+            rst = rst + resval
+        # activation
+        if self.activation:
+            rst = self.activation(rst)
+        return rst
 
 
 class GAT_Net_fast(nn.Module):
