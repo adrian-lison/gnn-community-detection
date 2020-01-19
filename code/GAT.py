@@ -159,6 +159,15 @@ class GATConv(nn.Module):
         if isinstance(self.res_fc, nn.Linear):
             nn.init.xavier_normal_(self.res_fc.weight, gain=gain)
 
+    def relu_udf(self, edges):
+        return {"e": self.leaky_relu(edges.data["e"])}
+
+    def sparsemax_udf(self, edges):
+        return {"a": self.sparsemaxF(edges.data["e"])}
+
+    def attn_drop_udf(self, edges):
+        return {"a": self.attn_drop(edges.data["a"])}
+
     def forward(self, graph, feat):
         r"""Compute graph attention network layer.
 
@@ -185,16 +194,16 @@ class GATConv(nn.Module):
         # compute edge attention
         graph.apply_edges(fn.u_add_v("el", "er", "e"))
         # apply leaky relu
-        graph.apply_edges(lambda edges: {"e": self.leaky_relu(edges.data["e"])})
+        graph.apply_edges(self.relu_udf)
 
         # compute softmax/sparsemax
-        if sparsemax:
-            graph.apply_edges(lambda edges: {"a": self.sparsemaxF(edges.data["e"])})
+        if self.sparsemax:
+            graph.apply_edges(self.sparsemax_udf)
         else:
             graph.edata["a"] = edge_softmax(graph, graph.edata.pop("e"))
 
         # attention dropout
-        graph.apply_edges(lambda edges: {"a": self.self.attn_drop(edges.data["a"])})
+        graph.apply_edges(self.attn_drop_udf)
 
         # message passing
         graph.update_all(fn.u_mul_e("ft", "a", "m"), fn.sum("m", "ft"))
