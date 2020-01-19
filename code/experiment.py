@@ -410,6 +410,9 @@ if __name__ == "__main__":
                                         for p_add in param_list
                                     ]
 
+                                if "fix_weight_decay" in net:
+                                    weight_decay = net["fix_weight_decay"]
+
                                 for param_set in params:
                                     runs.append(
                                         {
