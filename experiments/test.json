@@ -7,7 +7,7 @@
     "verbatim": true,
     "batchsize": 3,
     "n_processes": 2,
-    "overwrite": false,
+    "overwrite": true,
     "split_percentages": [
         {
             "train": 0.32,
@@ -35,8 +35,8 @@
         {
             "type": "GAT_Net_fast",
             "early_stopping": {
-                "min": 20000,
-                "wait": 5
+                "min": 100,
+                "wait": 50
             },
             "features": [
                 "keywords"
@@ -49,17 +49,21 @@
                     2
                 ],
                 "num_heads": [
-                    1
+                    2
                 ]
             },
             "tricks": {
                 "dropout": [
-                    0.2
+                    0
                 ],
                 "batchnorm": [
-                    false
+                    true
                 ],
                 "residual": [
+                    false
+                ],
+                "sparsemax": [
+                    true,
                     false
                 ]
             }

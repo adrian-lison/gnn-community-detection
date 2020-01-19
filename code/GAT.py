@@ -10,6 +10,7 @@ import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 from dgl.nn.pytorch import edge_softmax
+from dgl.utils import Identity
 
 from Sparsemax import Sparsemax
 
@@ -239,7 +240,7 @@ class GAT_Net_fast(nn.Module):
         self.activation = F.elu
         negative_slope = 0.2
         feat_drop = dropout
-        attn_drop = feat_drop/2
+        attn_drop = feat_drop / 2
 
         self.batchnorm = batchnorm
         self.bn = [nn.BatchNorm1d(hidden_size * num_heads) for i in range(hidden_layers)]
