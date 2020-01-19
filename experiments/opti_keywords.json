@@ -1,0 +1,148 @@
+{
+    "name": "opti_keywords",
+    "save_models": true,
+    "zip_models": true,
+    "save_logs": true,
+    "save_predictions": true,
+    "verbatim": false,
+    "batchsize": 8,
+    "n_processes": 4,
+    "overwrite": true,
+    "split_percentages": [
+        {
+            "train": 0.04,
+            "val": 0.01,
+            "test": 0.6
+        },
+        {
+            "train": 0.08,
+            "val": 0.02,
+            "test": 0.6
+        },
+        {
+            "train": 0.16,
+            "val": 0.04,
+            "test": 0.6
+        },
+        {
+            "train": 0.32,
+            "val": 0.08,
+            "test": 0.6
+        }
+    ],
+    "permutations": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+    ],
+    "repetitions": 5,
+    "learning_rates": [
+        0.01
+    ],
+    "weight_decays": [
+        0
+    ],
+    "loss_functions": [
+        {
+            "func_type": "nll",
+            "nclasses": "all"
+        }
+    ],
+    "nets": [
+        {
+            "type": "GCN_Net",
+            "fix_weight_decay": 0.01,
+            "early_stopping": {
+                "min": 150,
+                "wait": 80
+            },
+            "features": [
+                "keywords"
+            ],
+            "structure": {
+                "hidden_size": [
+                    100
+                ],
+                "hidden_layers": [
+                    1
+                ]
+            },
+            "tricks": {
+                "dropout": [
+                    0.2
+                ],
+                "batchnorm": [
+                    false
+                ]
+            }
+        },
+        {
+            "type": "GAT_Net_fast",
+            "early_stopping": {
+                "min": 150,
+                "wait": 80
+            },
+            "features": [
+                "keywords"
+            ],
+            "structure": {
+                "hidden_size": [
+                    50
+                ],
+                "hidden_layers": [
+                    2
+                ],
+                "num_heads": [
+                    1
+                ]
+            },
+            "tricks": {
+                "dropout": [
+                    0.2
+                ],
+                "batchnorm": [
+                    true
+                ],
+                "residual": [
+                    false
+                ]
+            }
+        },
+        {
+            "type": "LGNN_Net",
+            "early_stopping": {
+                "min": 150,
+                "wait": 80
+            },
+            "features": [
+                "keywords"
+            ],
+            "structure": {
+                "hidden_size": [
+                    100
+                ],
+                "hidden_layers": [
+                    1
+                ]
+            },
+            "tricks": {
+                "dropout": [
+                    0.2
+                ],
+                "batchnorm": [
+                    false
+                ],
+                "radius": [
+                    2
+                ]
+            }
+        }
+    ]
+}
