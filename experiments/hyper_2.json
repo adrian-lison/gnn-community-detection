@@ -1,0 +1,75 @@
+{
+    "name": "hyper2",
+    "save_models": false,
+    "zip_models": false,
+    "save_logs": true,
+    "save_predictions": true,
+    "verbatim": false,
+    "batchsize": 16,
+    "n_processes": 4,
+    "overwrite": true,
+    "split_percentages": [
+        {
+            "train": 0.32,
+            "val": 0.08,
+            "test": 0.6
+        }
+    ],
+    "permutations": [
+        1,
+        2,
+        3,
+        4
+    ],
+    "repetitions": 1,
+    "learning_rates": [
+        0.01
+    ],
+    "weight_decays": [
+        0,
+        0.01
+    ],
+    "loss_functions": [
+        {
+            "func_type": "nll",
+            "nclasses": "all"
+        }
+    ],
+    "nets": [
+         {
+            "type": "LGNN_Net",
+            "early_stopping": {
+                "min": 100,
+                "wait": 100
+            },
+            "features": [
+                "node_degree",
+                "keywords"
+            ],
+            "structure": {
+                "hidden_size": [
+                    50,
+                    100
+                ],
+                "hidden_layers": [
+                    1,
+                    2
+		]
+	    },
+            "tricks": {
+                "dropout": [
+                    0,
+                    0.2
+                ],
+                "batchnorm": [
+                    false,
+                    true
+                ],
+		"radius": [
+                    2,
+                    3
+                ]    
+            }
+        }
+    ]
+}
