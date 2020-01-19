@@ -229,7 +229,8 @@ class GAT_Net_fast(nn.Module):
         self.gat_layers = nn.ModuleList()
         self.activation = F.elu
         negative_slope = 0.2
-        feat_drop = attn_drop = dropout
+        feat_drop = dropout
+        attn_drop = feat_drop/2
 
         self.batchnorm = batchnorm
         self.bn = [nn.BatchNorm1d(hidden_size * num_heads) for i in range(hidden_layers)]
