@@ -10,7 +10,7 @@ import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 from dgl.nn.pytorch import edge_softmax
-from dgl.utils import Identity
+from dgl.nn.pytorch.utils import Identity
 
 from Sparsemax import Sparsemax
 
