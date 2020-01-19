@@ -1,5 +1,5 @@
 {
-    "name": "opti_keywords",
+    "name": "opti_nodeids",
     "save_models": true,
     "zip_models": true,
     "save_logs": true,
@@ -64,7 +64,7 @@
                 "wait": 80
             },
             "features": [
-                "keywords"
+                "node_id"
             ],
             "structure": {
                 "hidden_size": [
@@ -90,22 +90,22 @@
                 "wait": 80
             },
             "features": [
-                "keywords"
+                "node_id"
             ],
             "structure": {
                 "hidden_size": [
                     50
                 ],
                 "hidden_layers": [
-                    2
+                    3
                 ],
                 "num_heads": [
-                    1
+                    3
                 ]
             },
             "tricks": {
                 "dropout": [
-                    0.2
+                    0
                 ],
                 "batchnorm": [
                     true
@@ -122,14 +122,14 @@
                 "wait": 80
             },
             "features": [
-                "keywords"
+                "node_id"
             ],
             "structure": {
                 "hidden_size": [
                     100
                 ],
                 "hidden_layers": [
-                    1
+                    2
                 ]
             },
             "tricks": {
@@ -137,7 +137,7 @@
                     0.2
                 ],
                 "batchnorm": [
-                    false
+                    true
                 ],
                 "radius": [
                     2
