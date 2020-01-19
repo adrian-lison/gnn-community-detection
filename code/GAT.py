@@ -221,6 +221,7 @@ class GAT_Net_fast(nn.Module):
         batchnorm,
         num_heads,
         residual,
+        sparsemax=False,
     ):
         super(GAT_Net_fast, self).__init__()
         self.g = g
@@ -242,8 +243,9 @@ class GAT_Net_fast(nn.Module):
                 feat_drop,
                 attn_drop,
                 negative_slope,
-                False,
-                self.activation,
+                residual=False,
+                activation=self.activation,
+                sparsemax=sparsemax,
             )
         )
         # hidden layers
@@ -257,8 +259,9 @@ class GAT_Net_fast(nn.Module):
                     feat_drop,
                     attn_drop,
                     negative_slope,
-                    residual,
-                    self.activation,
+                    residual=residual,
+                    activation=self.activation,
+                    sparsemax=sparsemax,
                 )
             )
         # output projection
@@ -270,8 +273,9 @@ class GAT_Net_fast(nn.Module):
                 feat_drop,
                 attn_drop,
                 negative_slope,
-                residual,
-                None,
+                residual=residual,
+                activation=None,
+                sparsemax=False,
             )
         )
 
