@@ -72,6 +72,9 @@ features_keywords_lg = th.FloatTensor(
 
 # features based on the node_id of the papers
 features_nodeid = th.eye(g.number_of_nodes())
+features_nodeid_lg = th.FloatTensor(
+    np.vstack([features_nodeid[e[0], :] for e in data.graph.edges])
+)  # for the nodes in the line graph, we take the features of the source paper as feature
 
 # features based on the node degree
 features_degree_g = g.in_degrees().float().unsqueeze(1)
@@ -128,6 +131,8 @@ def perform_run(run):
                 net_features = (net_features, features_keywords_lg)
             elif run["feature"] == "node_degree":
                 net_features = (net_features, features_degree_lg)
+            elif run["feature"] == "node_id":
+                net_features = (net_features, features_nodeid_lg)
 
         mask_train = run["split"]["train"]
         mask_val = run["split"]["val"]
