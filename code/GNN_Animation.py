@@ -16,6 +16,7 @@ class GNN_Animation:
                 pos_epochs[x] = TSNE(n_components=2, init=pos_epochs[x-1],
                                      n_iter=250, early_exaggeration=30).fit_transform(logit_list[x].numpy())
         if method == "pca":
+            pass
 
         return pos_epochs
 
