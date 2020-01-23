@@ -83,6 +83,7 @@ class Sparsemax(nn.Module):
 
 
 #########################
+# Here we adapt Sparsemax on edges for GAT
 
 __all__ = ["edge_softmax"]
 
@@ -92,16 +93,7 @@ class EdgeSparsemax(th.autograd.Function):
 
     @staticmethod
     def forward(ctx, g, score, eids):
-        """Forward function.
-        Pseudo-code:
-        .. code:: python
-            score = dgl.EData(g, score)
-            score_max = score.dst_max()  # of type dgl.NData
-            score = score - score_max  # edge_sub_dst, ret dgl.EData
-            score_sum = score.dst_sum()  # of type dgl.NData
-            out = score / score_sum    # edge_div_dst, ret dgl.EData
-            return out.data
-        """
+
         # remember to save the graph to backward cache before making it
         # a local variable
         if not is_all(eids):
