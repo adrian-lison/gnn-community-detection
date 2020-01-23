@@ -1,0 +1,110 @@
+{
+    "name": "hyper1",
+    "save_models": false,
+    "zip_models": false,
+    "save_logs": true,
+    "save_predictions": true,
+    "verbatim": false,
+    "batchsize": 8,
+    "n_processes": 1,
+    "overwrite": true,
+    "split_percentages": [
+        {
+            "train": 0.32,
+            "val": 0.08,
+            "test": 0.6
+        }
+    ],
+    "permutations": [
+        1,
+        2,
+        3,
+        4
+    ],
+    "repetitions": 1,
+    "learning_rates": [
+        0.01
+    ],
+    "weight_decays": [
+        0,
+        0.01
+    ],
+    "loss_functions": [
+        {
+            "func_type": "nll",
+            "nclasses": "all"
+        }
+    ],
+    "nets": [
+        {
+            "type": "GCN_Net",
+            "early_stopping": {
+                "min": 50,
+                "wait": 30
+            },
+            "features": [
+                "node_id",
+                "keywords"
+            ],
+            "structure": {
+                "hidden_size": [
+                    50,
+                    100
+                ],
+                "hidden_layers": [
+                    1,
+                    2
+                ]
+            },
+            "tricks": {
+                "dropout": [
+                    0,
+                    0.2
+                ],
+                "batchnorm": [
+                    false,
+                    true
+                ]
+            }
+        },
+        {
+            "type": "GAT_Net_fast",
+            "early_stopping": {
+                "min": 50,
+                "wait": 30
+            },
+            "features": [
+                "node_id",
+                "keywords"
+            ],
+            "structure": {
+                "hidden_size": [
+                    50,
+                    100
+                ],
+                "hidden_layers": [
+                    2,
+                    3
+                ],
+                "num_heads": [
+                    1,
+                    3
+                ]
+            },
+            "tricks": {
+                "dropout": [
+                    0,
+                    0.2
+                ],
+                "batchnorm": [
+                    false,
+                    true
+                ],
+                "residual": [
+                    false,
+                    true
+                ]
+            }
+        }
+    ]
+}
