@@ -13,3 +13,8 @@ Our experiment is an instance of semi-supervised, inductive learning, where we t
 We design the experiment to compare the performance of different GNNs as well as benchmark the method against other non-GNN approaches for community detection.
 Simple kmeans-clustering on the nodes features (regardless of the graph structure) is performed to obtain a reference value for the feature data. Similarly, we run the deepwalk algorithm as an example of a powerful non-GNN approach to community detection.
 The graph neural network architectures tested here are the previously mentioned Graph Convolutional Network (GCN) as proposed by Kipf and Welling, Line Graph Neural Network (LGNN) by Chen et al. and Graph Attention Network (GAT) by Veličković et al.
+
+### Usage
+The main class is located in *code/experiment.py*. It can be run from the command line with an additional parameter that provides the path to an experiment configuration file located in the folder *experiments*. The file is then loaded and all experiments are carried out in parallel mode. The exemplary file *experiments/base configuration explained.json* shows explanations on how to configure.
+
+Stored models can be loaded as param_dicts by pytorch.
