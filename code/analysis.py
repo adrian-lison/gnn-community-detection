@@ -7,6 +7,7 @@
 # -----------------------------------------------------------------------------------------------
 import glob, os, json
 import pandas as pd
+import numpy as np
 
 # hyperparameter tuning
 resultlist = []
@@ -28,6 +29,11 @@ df = pd.DataFrame([json.load(open(f, "r")) for f in resultlist])
 # comparison of tuned GCN, GAT and LGNN on keyword features
 resultlist = []
 resultlist.extend(glob.glob(os.path.join("results/", "opti_keywords*.json")))
+df = pd.DataFrame([json.load(open(f, "r")) for f in resultlist])
+
+# comparison of tuned GCN, GAT and LGNN on node_id features
+resultlist = []
+resultlist.extend(glob.glob(os.path.join("results/", "opti_node*.json")))
 df = pd.DataFrame([json.load(open(f, "r")) for f in resultlist])
 
 # -----------------------------------------------------------------------------------------------
@@ -117,6 +123,10 @@ df.groupby(["permutation", "residual"])["Rand-Index_Test"].mean()
 # comparison of tuned GCN, GAT and LGNN on keyword features
 
 df.head(100)[["Rand-Index_Test", "Mutual Information_Test", "Variation of Information_Test"]].corr()
+
+
+df.groupby(["split_percentage_train","net","learning_rate"])["Rand-Index_Test"].mean()
+
 
 # -----------------------------------------------------------------------------------------------
 # useful resource
