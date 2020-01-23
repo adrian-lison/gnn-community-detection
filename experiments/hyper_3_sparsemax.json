@@ -1,13 +1,13 @@
 {
-    "name": "hyper3_sparsemax",
+    "name": "hyper3_sparsemax2",
     "save_models": false,
     "zip_models": false,
     "save_logs": true,
     "save_predictions": true,
     "verbatim": false,
     "batchsize": 8,
-    "n_processes": 1,
-    "overwrite": true,
+    "n_processes": 4,
+    "overwrite": false,
     "split_percentages": [
         {
             "train": 0.32,
@@ -26,8 +26,7 @@
         0.01
     ],
     "weight_decays": [
-        0,
-        0.01
+        0
     ],
     "loss_functions": [
         {
@@ -48,16 +47,13 @@
             ],
             "structure": {
                 "hidden_size": [
-                    50,
-                    100
+                    50
                 ],
                 "hidden_layers": [
-                    2,
-                    3
+                    2
                 ],
                 "num_heads": [
-                    1,
-                    3
+                    1
                 ]
             },
             "tricks": {
