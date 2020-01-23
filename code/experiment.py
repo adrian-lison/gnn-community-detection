@@ -416,7 +416,9 @@ if __name__ == "__main__":
                                     ]
 
                                 if "fix_weight_decay" in net:
-                                    weight_decay = net["fix_weight_decay"]
+                                    weight_decay_ = net["fix_weight_decay"]
+                                else:
+                                    weight_decay_ = weight_decay
 
                                 for param_set in params:
                                     runs.append(
@@ -432,7 +434,7 @@ if __name__ == "__main__":
                                             "split": split["split"],
                                             "repetition": repetition + 1,
                                             "learning_rate": learning_rate,
-                                            "weight_decay": weight_decay,
+                                            "weight_decay": weight_decay_,
                                             "loss_function": loss_function,
                                             "net": get_net(net["type"]),
                                             "early_stopping": net["early_stopping"],
