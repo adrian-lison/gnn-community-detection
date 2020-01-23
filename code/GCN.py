@@ -22,7 +22,7 @@ class LinearModule(nn.Module):
     def __init__(self, in_feats, out_feats, activation):
         super(LinearModule, self).__init__()
         self.linear = nn.Linear(in_feats, out_feats)
-        self.activation = activation  # This is the activation function
+        self.activation = activation
 
     def forward(self, node):
         h = node.data["h"]
@@ -32,7 +32,7 @@ class LinearModule(nn.Module):
 
 
 class GCN(nn.Module):
-    """GCN layer"""
+    """This is a graph network block of GCN"""
 
     def __init__(self, in_feats, out_feats, activation, batchnorm=False):
         super(GCN, self).__init__()
@@ -54,7 +54,7 @@ class GCN(nn.Module):
 
 
 class GCN_Net(nn.Module):
-    """Complete network"""
+    """This is a whole GCN"""
 
     def __init__(self, g, in_feats, hidden_size, hidden_layers, out_feats, dropout, batchnorm):
         super(GCN_Net, self).__init__()

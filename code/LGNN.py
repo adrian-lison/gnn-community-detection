@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Implementation of Graph Convolutional Network (Kipf and Welling)
+# Implementation of Line Graph Neural Network (LGNN)
 
 # ----------------------------------------------------------------------------
 # Imports
@@ -20,142 +20,9 @@ import scipy.sparse as ss
 # ----------------------------------------------------------------------------
 
 
-class LGNNCore(nn.Module):
-    def __init__(self, g, in_feats, out_feats, radius, batchnorm):
-        super(LGNNCore, self).__init__()
-        self.out_feats = out_feats
-        self.radius = radius
-        self.batchnorm = batchnorm
-        self.g = g
-
-        self.linear_prev = nn.Linear(in_feats, out_feats)
-        self.linear_deg = nn.Linear(in_feats, out_feats)
-        self.linear_radius = nn.ModuleList([nn.Linear(in_feats, out_feats) for i in range(radius)])
-        self.gcnconv = GCNconv(in_feats, out_feats)
-        self.linear_fuse = nn.Linear(in_feats, out_feats)
-        self.bn = nn.BatchNorm1d(out_feats)
-
-    def aggregate_radius(self, radius, z):
-        """Return a list containing features gathered from multiple hops in a radius."""
-        # initializing list to collect message passing result
-        z_list = []
-        g.ndata["z"] = z
-        # pulling message from 1-hop neighbourhood
-        g.update_all(
-            message_func=fn.copy_src(src="z", out="m"), reduce_func=fn.sum(msg="m", out="z")
-        )
-        z_list.append(g.ndata["z"])
-        for i in range(radius - 1):
-            for j in range(2 ** i):
-                # pulling message from 2^j neighborhood
-                g.update_all(fn.copy_src(src="z", out="m"), fn.sum(msg="m", out="z"))
-            z_list.append(g.ndata["z"])
-        g.ndata.pop("z")
-        return z_list
-
-    def forward(self, feat_a, feat_b, deg, pm_pd):
-        # term "prev"
-        prev_proj = self.linear_prev(feat_a)
-        # term "deg"
-        deg_proj = self.linear_deg(deg * feat_a)
-
-        # term "radius"
-        # aggregate 2^j-hop features
-        hop2j_list = self.aggregate_radius(self.radius, g, feat_a)
-        # apply linear transformation
-        hop2j_list = [linear(x) for linear, x in zip(self.linear_radius, hop2j_list)]
-        radius_proj = sum(hop2j_list)
-
-        # term "fuse"
-        fuse = self.linear_fuse(th.mm(pm_pd, feat_b))
-
-        # sum them together
-        result = prev_proj + deg_proj + fuse + radius_proj
-
-        # skip connection and batch norm
-        n = self.out_feats
-        result = th.cat([result[:, :n], F.relu(result[:, n:])], 1)
-        if self.batchnorm:
-            result = self.bn(result)
-
-        return result
-
-
-class LGNNLayer(nn.Module):
-    def __init__(self, g, lg, in_feats, in_feats_lg, out_feats, radius, batchnorm):
-        super(LGNNLayer, self).__init__()
-        self.g = g
-        self.lg = lg
-        self.g_layer = LGNNCore(self.g, in_feats, out_feats, radius, batchnorm)
-        self.lg_layer = LGNNCore(self.lg, in_feats_lg, out_feats, radius, batchnorm)
-
-    def forward(self, h, lg_h, deg_g, deg_lg, pm_pd, last=False):
-        next_h = self.g_layer(h, lg_h, deg_g, pm_pd)
-        if last:
-            return next_h
-        pm_pd_y = th.transpose(pm_pd, 0, 1)
-        next_lg_h = self.lg_layer(lg_h, h, deg_lg, pm_pd_y)
-        return next_h, next_lg_h
-
-
-class LGNN_Net_old(nn.Module):
-    def __init__(
-        self, g, in_feats, hidden_size, hidden_layers, out_feats, dropout, batchnorm, lg, radius
-    ):
-        super(LGNN_Net_old, self).__init__()
-        self.g = g
-        self.lg = lg
-
-        # pmpd
-        matrix = ss.lil_matrix((self.g.number_of_nodes(), self.g.number_of_edges()))
-        for s, d in zip(self.g.edges()[0], self.g.edges()[1]):
-            matrix[s, self.g.edge_id(s, d)] = -1
-            matrix[d, self.g.edge_id(s, d)] = 1
-        inputs_pmpd = ss.coo_matrix(matrix, dtype="int64")
-        indices = th.LongTensor([inputs_pmpd.row, inputs_pmpd.col])
-        self.pmpd = th.sparse.FloatTensor(
-            indices, th.from_numpy(inputs_pmpd.data).float(), inputs_pmpd.shape
-        )
-
-        # input
-        self.layer_in = LGNNLayer(
-            self.g, self.lg, in_feats, in_feats, hidden_size, radius, batchnorm
-        )
-
-        self.layer_hidden = [
-            LGNNLayer(self.g, self.lg, hidden_size, hidden_size, hidden_size, radius, batchnorm)
-            for i in range(hidden_layers)
-        ]
-
-        # predict classes
-        self.layer_out = nn.Linear(hidden_size, out_feats)
-
-        self.dropout = nn.Dropout(dropout)
-
-        # compute the degrees
-        self.deg_g = self.g.in_degrees().float().unsqueeze(1)
-        self.deg_lg = self.lg.in_degrees().float().unsqueeze(1)
-
-    def forward(self, features):
-        # assume that features is a tuple of g_features and lg_features
-        (h, lg_h) = features
-
-        h, lg_h = self.layer_in(h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
-
-        for i, layer in enumerate(self.layer_hidden):
-            h = self.dropout(h)
-            if i == len(self.layer_hidden):
-                h = layer(h, lg_h, self.deg_g, self.deg_lg, self.pmpd, last=True)
-            else:
-                h, lg_h = layer(h, lg_h, self.deg_g, self.deg_lg, self.pmpd)
-
-        h = self.dropout(h)
-        h = self.layer_out(h)
-        h = F.log_softmax(h, 1)
-        return h
-
-
 class LGNNModule(nn.Module):
+    """This is a graph network block of LGNN"""
+
     def __init__(self, in_feats, out_feats, radius, batchnorm):
         super().__init__()
         self.out_feats = out_feats
@@ -214,6 +81,8 @@ class LGNNModule(nn.Module):
 
 
 class LGNN_Net(nn.Module):
+    """This is a whole LGNN"""
+
     def __init__(
         self, g, in_feats, hidden_size, hidden_layers, out_feats, dropout, batchnorm, lg, radius
     ):
